@@ -19,7 +19,6 @@ document.addEventListener('click', e => {
 });
 
 /* ============ NAME MAPPINGS ============ */
-// Map ID gốc -> tên hiển thị tiếng Việt
 const ITEM_NAMES = {
   // Trà / sữa
   tra:      'Trà sữa',
@@ -29,7 +28,7 @@ const ITEM_NAMES = {
   olong:    'Trà Oolong',
   thai:     'Trà Thái',
 
-  // Trà trái cây (f_ = flavor)
+  // Trà trái cây
   f_vai:    'Trà vải',
   f_dao:    'Trà đào',
   f_dau:    'Trà dâu',
@@ -66,13 +65,13 @@ const ITEM_NAMES = {
   // Khác
   cup:      'Ly nhựa',
 
-  // Nhân viên (staff)
+  // Nhân viên
   staff1:   'Nhân viên 1',
   staff2:   'Nhân viên 2',
   staff3:   'Nhân viên 3',
   staff4:   'Nhân viên 4',
 
-  // Nâng cấp (upgrade)
+  // Nâng cấp
   upbulb:   'Đèn sáng',
   upchair:  'Ghế ngồi',
   upcups:   'Thêm ly',
@@ -82,20 +81,19 @@ const ITEM_NAMES = {
   tablet:   'Tablet',
 };
 
-// Nhóm để hiển thị có tổ chức
 const ITEM_GROUPS = [
-  { title: 'Trà & Sữa', keys: ['tra','matcha','hong','luc','olong','thai'] },
+  { title: 'Trà & Sữa',    keys: ['tra','matcha','hong','luc','olong','thai'] },
   { title: 'Trà trái cây', keys: ['f_vai','f_dao','f_dau','f_nho','f_oi','f_xoai','f_mang','f_tao','f_chanh','f_me','f_dua','f_choco'] },
-  { title: 'Trân châu', keys: ['tcden','tcvang','tcsoi'] },
-  { title: 'Topping', keys: ['popping','thach','cunang','thachtc','suongsao','thachcf','cheese','fmatcha','fsalt','fube','pmvien','pmtuoi','thachpm'] },
-  { title: 'Khác', keys: ['cup'] },
+  { title: 'Trân châu',    keys: ['tcden','tcvang','tcsoi'] },
+  { title: 'Topping',      keys: ['popping','thach','cunang','thachtc','suongsao','thachcf','cheese','fmatcha','fsalt','fube','pmvien','pmtuoi','thachpm'] },
+  { title: 'Khác',         keys: ['cup'] },
 ];
 
 function getName(id) {
   return ITEM_NAMES[id] || id;
 }
 
-/* Gate */
+/* ============ GATE ============ */
 function showGate(msg) {
   $('gate').classList.remove('hidden');
   $('app').classList.add('hidden');
@@ -162,6 +160,7 @@ $('gateInput').addEventListener('keydown', e => { if (e.key === 'Enter') activat
 /* ============ BACKUP LOGIC ============ */
 const SALT = 'ttn-bak-7f3a';
 const START_MONEY = 500, CAP_PER_DAY = 15000000, THIEF_DAY = 30, THIEF_MONEY = 100000000;
+
 function bakHash(t) {
   let h = 0x811c9dc5 >>> 0;
   const x = SALT + t;
@@ -208,7 +207,7 @@ async function encodeBackup(obj, preferGzip = true) {
   return 'TTN1.' + body + '.' + bakHash(body);
 }
 
-/* ============ AUDIT + UI ============ */
+/* ============ AUDIT ============ */
 function computeAudit(save) {
   const day = Number(save.day) || 0;
   const cap = START_MONEY + day * CAP_PER_DAY;
@@ -221,6 +220,8 @@ function computeAudit(save) {
     bad: !isFinite(money) || money < 0,
   };
 }
+
+/* ============ STATE ============ */
 let currentSave = null;
 const SCALAR_FIELDS = [
   { key:'money', label:'Tiền' }, { key:'day', label:'Ngày' },
@@ -235,6 +236,7 @@ function fmt(n) { return isFinite(n) ? Number(n).toLocaleString('vi-VN') : '—'
 function showMsg(t, c='warn') { const e = $('msg'); e.className = c; e.textContent = t; e.classList.remove('hidden'); }
 function hideMsg() { $('msg').classList.add('hidden'); }
 
+/* ============ LOAD SAVE ============ */
 function loadSave(save) {
   currentSave = save;
   $('editPane').classList.remove('hidden');
@@ -257,21 +259,25 @@ function loadSave(save) {
   renderStock(save.stock || {});
 
   $('rawJson').value = JSON.stringify(save, null, 2);
-  renderAudit(); updateScalarAlerts();
-  $('outCode').value = ''; $('btnCopy').disabled = true; $('btnDownload').disabled = true;
+  renderAudit();
+  updateScalarAlerts();
+  $('outCode').value = '';
+  $('btnCopy').disabled = true;
+  $('btnDownload').disabled = true;
 
   setTimeout(() => {
     $('editPane').scrollIntoView({ behavior:'smooth', block:'start' });
   }, 100);
 }
 
-/* Render unlock chips có nhóm + tên tiếng Việt */
+/* ============ RENDER UNLOCK CHIPS ============ */
 function renderUnlockChips(unlocked) {
   const uc = $('unlockChips');
   uc.innerHTML = '';
   uc.classList.add('grouped');
 
-  // Nhóm theo ITEM_GROUPS trước
+  const rendered = new Set();
+
   ITEM_GROUPS.forEach(grp => {
     const validKeys = grp.keys.filter(k => k in unlocked);
     if (!validKeys.length) return;
@@ -287,6 +293,7 @@ function renderUnlockChips(unlocked) {
     const listEl = document.createElement('div');
     listEl.className = 'chips';
     validKeys.forEach(k => {
+      rendered.add(k);
       const c = document.createElement('span');
       c.className = 'chip' + (unlocked[k] ? ' on' : '');
       c.dataset.unlock = k;
@@ -298,9 +305,8 @@ function renderUnlockChips(unlocked) {
     uc.appendChild(groupEl);
   });
 
-  // Các key còn lại không nằm trong nhóm nào
-  const grouped = new Set(ITEM_GROUPS.flatMap(g => g.keys));
-  const others = Object.keys(unlocked).filter(k => !grouped.has(k));
+  // Các key còn lại
+  const others = Object.keys(unlocked).filter(k => !rendered.has(k));
   if (others.length) {
     const groupEl = document.createElement('div');
     groupEl.className = 'chip-group';
@@ -323,7 +329,7 @@ function renderUnlockChips(unlocked) {
   }
 }
 
-/* Render upgrade chips */
+/* ============ RENDER UPG CHIPS ============ */
 function renderUpgChips(upg) {
   const gc = $('upgChips');
   gc.innerHTML = '';
@@ -337,16 +343,17 @@ function renderUpgChips(upg) {
   });
 }
 
-/* Render stock với tên tiếng Việt */
+/* ============ RENDER STOCK ============ */
 function renderStock(stock) {
-  const sl = $('stockList'); sl.innerHTML = '';
+  const sl = $('stockList');
+  sl.innerHTML = '';
 
-  // Nhóm
-  const grouped = new Set();
+  const rendered = new Set();
+
   ITEM_GROUPS.forEach(grp => {
     const validKeys = grp.keys.filter(k => k in stock);
     if (!validKeys.length) return;
-    grouped.add(...validKeys);
+    validKeys.forEach(k => rendered.add(k));
 
     const sec = document.createElement('div');
     sec.className = 'stock-section';
@@ -362,8 +369,8 @@ function renderStock(stock) {
     sl.appendChild(sec);
   });
 
-  // Còn lại
-  const others = Object.keys(stock).filter(k => !grouped.has(k));
+  // Các key còn lại
+  const others = Object.keys(stock).filter(k => !rendered.has(k));
   if (others.length) {
     const sec = document.createElement('div');
     sec.className = 'stock-section';
@@ -389,6 +396,7 @@ function makeStockRow(k, arr) {
   return row;
 }
 
+/* ============ RENDER AUDIT ============ */
 function renderAudit() {
   if (!currentSave) return;
   const a = computeAudit(currentSave);
@@ -407,6 +415,7 @@ function renderAudit() {
     + '<div>Money<b>' + fmt(a.money) + 'đ</b></div>'
     + '</div>';
 }
+
 function updateScalarAlerts() {
   if (!currentSave) return;
   const money = Number(currentSave.money) || 0;
@@ -425,6 +434,8 @@ function updateScalarAlerts() {
     }
   });
 }
+
+/* ============ EVENT LISTENERS ============ */
 document.addEventListener('input', e => {
   if (!currentSave) return;
   const t = e.target;
@@ -446,6 +457,7 @@ document.addEventListener('input', e => {
     currentSave.stock[k] = [{ q, exp: v }]; return;
   }
 });
+
 document.addEventListener('click', e => {
   if (!currentSave) return;
   const c = e.target.closest('.chip'); if (!c) return;
@@ -459,6 +471,8 @@ document.addEventListener('click', e => {
     c.classList.toggle('on', currentSave.upg[k]);
   }
 });
+
+/* ============ BUTTONS ============ */
 $('btnLoad').onclick = async () => {
   hideMsg();
   const btn = $('btnLoad');
@@ -469,7 +483,8 @@ $('btnLoad').onclick = async () => {
     const code = $('inCode').value.trim();
     if (!code) throw new Error('Chưa có mã.');
     const save = await decodeBackup(code);
-    loadSave(save); showMsg('✓ Giải mã thành công.', 'ok');
+    loadSave(save);
+    showMsg('✓ Giải mã thành công.', 'ok');
   } catch (err) {
     showMsg('Lỗi: ' + err.message, 'warn');
   } finally {
@@ -477,20 +492,62 @@ $('btnLoad').onclick = async () => {
     btn.textContent = oldText;
   }
 };
+
 $('inFile').onchange = e => {
   const f = e.target.files?.[0]; if (!f) return;
   const r = new FileReader();
   r.onload = () => { $('inCode').value = String(r.result || '').trim(); };
   r.readAsText(f, 'utf-8');
 };
-$('btnClear').onclick = () => { $('inCode').value = ''; $('editPane').classList.add('hidden'); currentSave = null; hideMsg(); };
-$('btnUnlockAll').onclick = () => { if (!currentSave) return; Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = true); document.querySelectorAll('[data-unlock]').forEach(c => c.classList.add('on')); };
-$('btnUnlockNone').onclick = () => { if (!currentSave) return; Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = false); document.querySelectorAll('[data-unlock]').forEach(c => c.classList.remove('on')); };
-$('btnUpgAll').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = true); document.querySelectorAll('[data-upg]').forEach(c => c.classList.add('on')); };
-$('btnUpgNone').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = false); document.querySelectorAll('[data-upg]').forEach(c => c.classList.remove('on')); };
-$('btnStockMax').onclick = () => { if (!currentSave) return; Object.keys(currentSave.stock).forEach(k => currentSave.stock[k] = [{ q: 999, exp: 9999 }]); renderStock(currentSave.stock); };
-$('btnApplyRaw').onclick = () => { try { loadSave(JSON.parse($('rawJson').value)); showMsg('✓ Đã áp dụng.', 'ok'); } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); } };
-$('btnRefreshRaw').onclick = () => { if (currentSave) $('rawJson').value = JSON.stringify(currentSave, null, 2); };
+
+$('btnClear').onclick = () => {
+  $('inCode').value = '';
+  $('editPane').classList.add('hidden');
+  currentSave = null;
+  hideMsg();
+};
+
+$('btnUnlockAll').onclick = () => {
+  if (!currentSave) return;
+  Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = true);
+  document.querySelectorAll('[data-unlock]').forEach(c => c.classList.add('on'));
+};
+
+$('btnUnlockNone').onclick = () => {
+  if (!currentSave) return;
+  Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = false);
+  document.querySelectorAll('[data-unlock]').forEach(c => c.classList.remove('on'));
+};
+
+$('btnUpgAll').onclick = () => {
+  if (!currentSave) return;
+  Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = true);
+  document.querySelectorAll('[data-upg]').forEach(c => c.classList.add('on'));
+};
+
+$('btnUpgNone').onclick = () => {
+  if (!currentSave) return;
+  Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = false);
+  document.querySelectorAll('[data-upg]').forEach(c => c.classList.remove('on'));
+};
+
+$('btnStockMax').onclick = () => {
+  if (!currentSave) return;
+  Object.keys(currentSave.stock).forEach(k => currentSave.stock[k] = [{ q: 999, exp: 9999 }]);
+  renderStock(currentSave.stock);
+};
+
+$('btnApplyRaw').onclick = () => {
+  try {
+    loadSave(JSON.parse($('rawJson').value));
+    showMsg('✓ Đã áp dụng.', 'ok');
+  } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); }
+};
+
+$('btnRefreshRaw').onclick = () => {
+  if (currentSave) $('rawJson').value = JSON.stringify(currentSave, null, 2);
+};
+
 $('btnEncode').onclick = async () => {
   if (!currentSave) return;
   const btn = $('btnEncode');
@@ -500,24 +557,40 @@ $('btnEncode').onclick = async () => {
   try {
     const code = await encodeBackup(currentSave);
     $('outCode').value = code;
-    $('btnCopy').disabled = false; $('btnDownload').disabled = false;
+    $('btnCopy').disabled = false;
+    $('btnDownload').disabled = false;
     showMsg('✓ Đã tạo mã mới.', 'ok');
     setTimeout(() => $('outCode').scrollIntoView({ behavior:'smooth', block:'center' }), 100);
-  } catch (err) { showMsg('Lỗi: ' + err.message, 'warn'); }
-  finally { btn.disabled = false; btn.textContent = oldText; }
+  } catch (err) {
+    showMsg('Lỗi: ' + err.message, 'warn');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
 };
+
 $('btnCopy').onclick = async () => {
   const c = $('outCode').value; if (!c) return;
   const btn = $('btnCopy');
-  try { await navigator.clipboard.writeText(c); btn.textContent = '✓ Đã copy'; showMsg('✓ Đã copy vào clipboard.', 'ok'); }
-  catch { $('outCode').select(); document.execCommand('copy'); btn.textContent = '✓ Đã copy'; showMsg('✓ Đã copy.', 'ok'); }
+  try {
+    await navigator.clipboard.writeText(c);
+    btn.textContent = '✓ Đã copy';
+    showMsg('✓ Đã copy vào clipboard.', 'ok');
+  } catch {
+    $('outCode').select();
+    document.execCommand('copy');
+    btn.textContent = '✓ Đã copy';
+    showMsg('✓ Đã copy.', 'ok');
+  }
   setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 };
+
 $('btnDownload').onclick = () => {
   const c = $('outCode').value; if (!c) return;
   const blob = new Blob([c], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'ttn-backup-' + new Date().toISOString().slice(0,10) + '.txt';
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
