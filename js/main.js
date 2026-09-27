@@ -18,6 +18,83 @@ document.addEventListener('click', e => {
   setTimeout(() => ripple.remove(), 600);
 });
 
+/* ============ NAME MAPPINGS ============ */
+// Map ID gốc -> tên hiển thị tiếng Việt
+const ITEM_NAMES = {
+  // Trà / sữa
+  tra:      'Trà sữa',
+  matcha:   'Matcha',
+  hong:     'Hồng trà',
+  luc:      'Lục trà',
+  olong:    'Trà Oolong',
+  thai:     'Trà Thái',
+
+  // Trà trái cây (f_ = flavor)
+  f_vai:    'Trà vải',
+  f_dao:    'Trà đào',
+  f_dau:    'Trà dâu',
+  f_nho:    'Trà nho',
+  f_oi:     'Trà ổi',
+  f_xoai:   'Trà xoài',
+  f_mang:   'Trà mãng cầu',
+  f_tao:    'Trà táo',
+  f_chanh:  'Trà chanh',
+  f_me:     'Trà me',
+  f_dua:    'Trà dừa',
+  f_choco:  'Trà chocolate',
+
+  // Trân châu
+  tcden:    'Trân châu đen',
+  tcvang:   'Trân châu vàng',
+  tcsoi:    'Trân châu sợi',
+
+  // Topping
+  popping:  'Popping',
+  thach:    'Thạch',
+  cunang:   'Củ năng',
+  thachtc:  'Thạch trân châu',
+  suongsao: 'Sương sáo',
+  thachcf:  'Thạch cà phê',
+  cheese:   'Phô mai',
+  fmatcha:  'Foam matcha',
+  fsalt:    'Foam muối',
+  fube:     'Foam béo',
+  pmvien:   'Pudding viên',
+  pmtuoi:   'Pudding tươi',
+  thachpm:  'Thạch pudding',
+
+  // Khác
+  cup:      'Ly nhựa',
+
+  // Nhân viên (staff)
+  staff1:   'Nhân viên 1',
+  staff2:   'Nhân viên 2',
+  staff3:   'Nhân viên 3',
+  staff4:   'Nhân viên 4',
+
+  // Nâng cấp (upgrade)
+  upbulb:   'Đèn sáng',
+  upchair:  'Ghế ngồi',
+  upcups:   'Thêm ly',
+  upmega:   'Loa mega',
+  upsnow:   'Đá tuyết',
+  brandKit: 'Bộ nhận diện',
+  tablet:   'Tablet',
+};
+
+// Nhóm để hiển thị có tổ chức
+const ITEM_GROUPS = [
+  { title: 'Trà & Sữa', keys: ['tra','matcha','hong','luc','olong','thai'] },
+  { title: 'Trà trái cây', keys: ['f_vai','f_dao','f_dau','f_nho','f_oi','f_xoai','f_mang','f_tao','f_chanh','f_me','f_dua','f_choco'] },
+  { title: 'Trân châu', keys: ['tcden','tcvang','tcsoi'] },
+  { title: 'Topping', keys: ['popping','thach','cunang','thachtc','suongsao','thachcf','cheese','fmatcha','fsalt','fube','pmvien','pmtuoi','thachpm'] },
+  { title: 'Khác', keys: ['cup'] },
+];
+
+function getName(id) {
+  return ITEM_NAMES[id] || id;
+}
+
 /* Gate */
 function showGate(msg) {
   $('gate').classList.remove('hidden');
@@ -161,7 +238,6 @@ function hideMsg() { $('msg').classList.add('hidden'); }
 function loadSave(save) {
   currentSave = save;
   $('editPane').classList.remove('hidden');
-  // Stagger animation khi mở
   $('editPane').style.animation = 'none';
   void $('editPane').offsetHeight;
   $('editPane').style.animation = 'fadeInUp .6s cubic-bezier(.16,1,.3,1)';
@@ -175,40 +251,144 @@ function loadSave(save) {
     sg.appendChild(div);
   });
   $('fShopName').value = save.shopName || '';
-  const uc = $('unlockChips'); uc.innerHTML = '';
-  Object.keys(save.unlocked || {}).forEach(k => {
-    const c = document.createElement('span');
-    c.className = 'chip' + (save.unlocked[k] ? ' on' : '');
-    c.dataset.unlock = k; c.textContent = k; uc.appendChild(c);
-  });
-  const gc = $('upgChips'); gc.innerHTML = '';
-  Object.keys(save.upg || {}).forEach(k => {
-    const c = document.createElement('span');
-    c.className = 'chip' + (save.upg[k] ? ' on' : '');
-    c.dataset.upg = k; c.textContent = k; gc.appendChild(c);
-  });
+
+  renderUnlockChips(save.unlocked || {});
+  renderUpgChips(save.upg || {});
   renderStock(save.stock || {});
+
   $('rawJson').value = JSON.stringify(save, null, 2);
   renderAudit(); updateScalarAlerts();
   $('outCode').value = ''; $('btnCopy').disabled = true; $('btnDownload').disabled = true;
 
-  // Scroll tới editPane
   setTimeout(() => {
     $('editPane').scrollIntoView({ behavior:'smooth', block:'start' });
   }, 100);
 }
-function renderStock(stock) {
-  const sl = $('stockList'); sl.innerHTML = '';
-  Object.keys(stock).forEach(k => {
-    const arr = stock[k] || [], q = arr[0]?.q ?? 0, exp = arr[0]?.exp ?? 0;
-    const row = document.createElement('div');
-    row.className = 'stockrow';
-    row.innerHTML = '<div class="nm">' + k + '</div>'
-      + '<input type="text" data-stock-q="' + k + '" value="' + q + '" placeholder="q">'
-      + '<input type="text" data-stock-exp="' + k + '" value="' + exp + '" placeholder="exp">';
-    sl.appendChild(row);
+
+/* Render unlock chips có nhóm + tên tiếng Việt */
+function renderUnlockChips(unlocked) {
+  const uc = $('unlockChips');
+  uc.innerHTML = '';
+  uc.classList.add('grouped');
+
+  // Nhóm theo ITEM_GROUPS trước
+  ITEM_GROUPS.forEach(grp => {
+    const validKeys = grp.keys.filter(k => k in unlocked);
+    if (!validKeys.length) return;
+
+    const groupEl = document.createElement('div');
+    groupEl.className = 'chip-group';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'chip-group-title';
+    titleEl.textContent = grp.title;
+    groupEl.appendChild(titleEl);
+
+    const listEl = document.createElement('div');
+    listEl.className = 'chips';
+    validKeys.forEach(k => {
+      const c = document.createElement('span');
+      c.className = 'chip' + (unlocked[k] ? ' on' : '');
+      c.dataset.unlock = k;
+      c.innerHTML = '<span class="chip-name">' + getName(k) + '</span>'
+                  + '<span class="chip-id">' + k + '</span>';
+      listEl.appendChild(c);
+    });
+    groupEl.appendChild(listEl);
+    uc.appendChild(groupEl);
+  });
+
+  // Các key còn lại không nằm trong nhóm nào
+  const grouped = new Set(ITEM_GROUPS.flatMap(g => g.keys));
+  const others = Object.keys(unlocked).filter(k => !grouped.has(k));
+  if (others.length) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'chip-group';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'chip-group-title';
+    titleEl.textContent = 'Khác';
+    groupEl.appendChild(titleEl);
+    const listEl = document.createElement('div');
+    listEl.className = 'chips';
+    others.forEach(k => {
+      const c = document.createElement('span');
+      c.className = 'chip' + (unlocked[k] ? ' on' : '');
+      c.dataset.unlock = k;
+      c.innerHTML = '<span class="chip-name">' + getName(k) + '</span>'
+                  + '<span class="chip-id">' + k + '</span>';
+      listEl.appendChild(c);
+    });
+    groupEl.appendChild(listEl);
+    uc.appendChild(groupEl);
+  }
+}
+
+/* Render upgrade chips */
+function renderUpgChips(upg) {
+  const gc = $('upgChips');
+  gc.innerHTML = '';
+  Object.keys(upg).forEach(k => {
+    const c = document.createElement('span');
+    c.className = 'chip' + (upg[k] ? ' on' : '');
+    c.dataset.upg = k;
+    c.innerHTML = '<span class="chip-name">' + getName(k) + '</span>'
+                + '<span class="chip-id">' + k + '</span>';
+    gc.appendChild(c);
   });
 }
+
+/* Render stock với tên tiếng Việt */
+function renderStock(stock) {
+  const sl = $('stockList'); sl.innerHTML = '';
+
+  // Nhóm
+  const grouped = new Set();
+  ITEM_GROUPS.forEach(grp => {
+    const validKeys = grp.keys.filter(k => k in stock);
+    if (!validKeys.length) return;
+    grouped.add(...validKeys);
+
+    const sec = document.createElement('div');
+    sec.className = 'stock-section';
+
+    const title = document.createElement('div');
+    title.className = 'stock-title';
+    title.textContent = grp.title;
+    sec.appendChild(title);
+
+    validKeys.forEach(k => {
+      sec.appendChild(makeStockRow(k, stock[k]));
+    });
+    sl.appendChild(sec);
+  });
+
+  // Còn lại
+  const others = Object.keys(stock).filter(k => !grouped.has(k));
+  if (others.length) {
+    const sec = document.createElement('div');
+    sec.className = 'stock-section';
+    const title = document.createElement('div');
+    title.className = 'stock-title';
+    title.textContent = 'Khác';
+    sec.appendChild(title);
+    others.forEach(k => {
+      sec.appendChild(makeStockRow(k, stock[k]));
+    });
+    sl.appendChild(sec);
+  }
+}
+
+function makeStockRow(k, arr) {
+  const a = arr || [];
+  const q = a[0]?.q ?? 0, exp = a[0]?.exp ?? 0;
+  const row = document.createElement('div');
+  row.className = 'stockrow';
+  row.innerHTML = '<div class="nm" title="' + k + '">' + getName(k) + '</div>'
+    + '<input type="text" data-stock-q="' + k + '" value="' + q + '" placeholder="SL">'
+    + '<input type="text" data-stock-exp="' + k + '" value="' + exp + '" placeholder="HSD">';
+  return row;
+}
+
 function renderAudit() {
   if (!currentSave) return;
   const a = computeAudit(currentSave);
