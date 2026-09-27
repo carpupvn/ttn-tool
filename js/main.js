@@ -1,8 +1,24 @@
-/* ============ GATE ============ */
+/* ============ UI HELPERS ============ */
 const $ = id => document.getElementById(id);
 let _licState = null;
 let _licTimer = null;
 
+/* Ripple effect cho button */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const rect = b.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  b.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+});
+
+/* Gate */
 function showGate(msg) {
   $('gate').classList.remove('hidden');
   $('app').classList.add('hidden');
@@ -12,6 +28,7 @@ function showGate(msg) {
   } else {
     $('gateMsg').textContent = '';
   }
+  setTimeout(() => $('gateInput').focus(), 200);
 }
 function showApp(state) {
   _licState = state;
@@ -38,15 +55,18 @@ function renderBanner() {
 }
 
 async function activate(input) {
+  const btn = $('gateBtn');
   $('gateMsg').className = '';
-  $('gateMsg').textContent = 'Đang kiểm tra...';
+  $('gateMsg').innerHTML = '<span class="spinner"></span>Đang kiểm tra...';
+  btn.disabled = true;
   const r = await License.verifyCode(input);
+  btn.disabled = false;
   if (r.ok) {
     const state = { ok: true, exp: r.exp, name: r.name };
     License.saveLicense(state);
     $('gateMsg').className = 'ok';
     $('gateMsg').textContent = '✓ Thành công. Còn ' + License.humanRemain(r.exp - Date.now());
-    setTimeout(() => showApp(state), 400);
+    setTimeout(() => showApp(state), 500);
   } else {
     $('gateMsg').className = 'warn';
     $('gateMsg').textContent = '❌ ' + r.reason;
@@ -141,6 +161,11 @@ function hideMsg() { $('msg').classList.add('hidden'); }
 function loadSave(save) {
   currentSave = save;
   $('editPane').classList.remove('hidden');
+  // Stagger animation khi mở
+  $('editPane').style.animation = 'none';
+  void $('editPane').offsetHeight;
+  $('editPane').style.animation = 'fadeInUp .6s cubic-bezier(.16,1,.3,1)';
+
   const sg = $('scalarGrid'); sg.innerHTML = '';
   SCALAR_FIELDS.forEach(f => {
     if (!(f.key in save)) return;
@@ -166,6 +191,11 @@ function loadSave(save) {
   $('rawJson').value = JSON.stringify(save, null, 2);
   renderAudit(); updateScalarAlerts();
   $('outCode').value = ''; $('btnCopy').disabled = true; $('btnDownload').disabled = true;
+
+  // Scroll tới editPane
+  setTimeout(() => {
+    $('editPane').scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 100);
 }
 function renderStock(stock) {
   const sl = $('stockList'); sl.innerHTML = '';
@@ -251,12 +281,21 @@ document.addEventListener('click', e => {
 });
 $('btnLoad').onclick = async () => {
   hideMsg();
+  const btn = $('btnLoad');
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Đang giải...';
   try {
     const code = $('inCode').value.trim();
-    if (!code) return showMsg('Chưa có mã.');
+    if (!code) throw new Error('Chưa có mã.');
     const save = await decodeBackup(code);
-    loadSave(save); showMsg('Giải mã thành công.', 'ok');
-  } catch (err) { showMsg('Lỗi: ' + err.message, 'warn'); }
+    loadSave(save); showMsg('✓ Giải mã thành công.', 'ok');
+  } catch (err) {
+    showMsg('Lỗi: ' + err.message, 'warn');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
 };
 $('inFile').onchange = e => {
   const f = e.target.files?.[0]; if (!f) return;
@@ -270,21 +309,29 @@ $('btnUnlockNone').onclick = () => { if (!currentSave) return; Object.keys(curre
 $('btnUpgAll').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = true); document.querySelectorAll('[data-upg]').forEach(c => c.classList.add('on')); };
 $('btnUpgNone').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = false); document.querySelectorAll('[data-upg]').forEach(c => c.classList.remove('on')); };
 $('btnStockMax').onclick = () => { if (!currentSave) return; Object.keys(currentSave.stock).forEach(k => currentSave.stock[k] = [{ q: 999, exp: 9999 }]); renderStock(currentSave.stock); };
-$('btnApplyRaw').onclick = () => { try { loadSave(JSON.parse($('rawJson').value)); showMsg('Đã áp dụng.', 'ok'); } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); } };
+$('btnApplyRaw').onclick = () => { try { loadSave(JSON.parse($('rawJson').value)); showMsg('✓ Đã áp dụng.', 'ok'); } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); } };
 $('btnRefreshRaw').onclick = () => { if (currentSave) $('rawJson').value = JSON.stringify(currentSave, null, 2); };
 $('btnEncode').onclick = async () => {
   if (!currentSave) return;
+  const btn = $('btnEncode');
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Đang tạo...';
   try {
     const code = await encodeBackup(currentSave);
     $('outCode').value = code;
     $('btnCopy').disabled = false; $('btnDownload').disabled = false;
-    showMsg('Đã tạo mã mới.', 'ok');
+    showMsg('✓ Đã tạo mã mới.', 'ok');
+    setTimeout(() => $('outCode').scrollIntoView({ behavior:'smooth', block:'center' }), 100);
   } catch (err) { showMsg('Lỗi: ' + err.message, 'warn'); }
+  finally { btn.disabled = false; btn.textContent = oldText; }
 };
 $('btnCopy').onclick = async () => {
   const c = $('outCode').value; if (!c) return;
-  try { await navigator.clipboard.writeText(c); showMsg('Đã copy.', 'ok'); }
-  catch { $('outCode').select(); document.execCommand('copy'); showMsg('Đã copy.', 'ok'); }
+  const btn = $('btnCopy');
+  try { await navigator.clipboard.writeText(c); btn.textContent = '✓ Đã copy'; showMsg('✓ Đã copy vào clipboard.', 'ok'); }
+  catch { $('outCode').select(); document.execCommand('copy'); btn.textContent = '✓ Đã copy'; showMsg('✓ Đã copy.', 'ok'); }
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 };
 $('btnDownload').onclick = () => {
   const c = $('outCode').value; if (!c) return;

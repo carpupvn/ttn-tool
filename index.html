@@ -14,12 +14,22 @@
   <span>Admin</span>
 </a>
 
+<!-- Floating decorations -->
+<div class="deco" aria-hidden="true">
+  <span class="deco-item d1">🧋</span>
+  <span class="deco-item d2">🍃</span>
+  <span class="deco-item d3">🫧</span>
+  <span class="deco-item d4">⭐</span>
+  <span class="deco-item d5">🌸</span>
+</div>
+
 <div class="wrap">
 
   <!-- ===== GATE ===== -->
   <div id="gate" class="gate hidden">
-    <div class="panel">
-      <h2 style="margin-top:0">🔒 Cần mã truy cập</h2>
+    <div class="panel gate-panel">
+      <div class="gate-icon">🔒</div>
+      <h2 style="margin-top:0">Cần mã truy cập</h2>
       <p class="sub">Nhập mã để dùng tool. Mã có thời hạn.</p>
       <input type="text" id="gateInput" placeholder="HTTN1-XXXX-XXXX-XXXX-XXXX" autocomplete="off">
       <div class="row" style="justify-content:center;margin-top:12px">
@@ -36,10 +46,10 @@
   <div id="app" class="hidden">
     <div id="licBanner" class="banner ok"></div>
 
-    <h1>Tiệm Trà Nhỏ — Save Editor</h1>
-    <p class="sub">Công cụ chỉnh mã sao lưu (offline, chạy hoàn toàn trong trình duyệt).</p>
+    <h1 class="appear">Tiệm Trà Nhỏ — Save Editor</h1>
+    <p class="sub appear" style="animation-delay:.05s">Công cụ chỉnh mã sao lưu (offline, chạy hoàn toàn trong trình duyệt).</p>
 
-    <div class="legal">
+    <div class="legal appear" style="animation-delay:.1s">
       <b>⚠️ Cảnh báo pháp lý &amp; đạo đức</b><br>
       Đây là công cụ <b>không chính thức</b>, không liên kết với tác giả game.
       Mã sao lưu chỉ chứa dữ liệu của <b>chính bạn</b>. Việc sửa save có thể vi phạm
@@ -49,7 +59,7 @@
       nhiệm cho bất kỳ hậu quả nào.
     </div>
 
-    <div class="panel">
+    <div class="panel appear" style="animation-delay:.15s">
       <h2 style="margin-top:0">1. Nhập mã sao lưu</h2>
       <textarea id="inCode" placeholder="Dán mã TTN1... vào đây"></textarea>
       <div class="row">
