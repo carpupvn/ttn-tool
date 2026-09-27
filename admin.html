@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Tạo mã</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<a href="index.html" class="mode-switch" title="Chuyển về chế độ người dùng">
+  <span class="ico">👤</span>
+  <span>Người dùng</span>
+</a>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginPanel" class="panel">
+  <h1>Admin</h1>
+  <label>Mật khẩu</label>
+  <input type="password" id="pwInput" autocomplete="off">
+  <button id="pwBtn">Đăng nhập</button>
+  <div id="pwMsg"></div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div id="mainPanel" class="hidden">
+  <h1>Admin Panel</h1>
+
+  <!-- Tạo mã -->
+  <div class="panel">
+    <h2 style="margin-top:0">Tạo mã</h2>
+    <label>Tên mã (A-Z, 0-9)</label>
+    <input type="text" id="fName" value="HACKHACK">
+    <label>Hết hạn sau (ngày)</label>
+    <input type="number" id="fDays" value="2" min="1" max="365">
+    <label>Hoặc nhập ngày giờ cụ thể (bỏ trống nếu dùng "số ngày")</label>
+    <input type="datetime-local" id="fExp">
+    <label>Ghi chú (admin)</label>
+    <input type="text" id="fNote" placeholder="user A / discord / ...">
+    <div class="row">
+      <button id="btnGen">Tạo mã</button>
+      <button class="ghost" id="btnClear">Xoá form</button>
+    </div>
+    <div id="genMsg"></div>
+  </div>
+
+  <!-- Kết quả -->
+  <div id="resultPanel" class="panel hidden">
+    <h2 style="margin-top:0">Mã gửi user</h2>
+    <pre id="outCode"></pre>
+    <div class="row"><button class="ghost" id="btnCopyCode">Copy mã</button></div>
+
+    <h2>Hash</h2>
+    <pre id="outHash"></pre>
+    <div class="row"><button class="ghost" id="btnCopyHash">Copy hash</button></div>
+  </div>
+
+  <!-- Quản lý danh sách -->
+  <div class="panel">
+    <h2 style="margin-top:0">
+      Danh sách mã
+      <span id="sourceBadge" class="badge dead" style="margin-left:6px">Chưa đồng bộ</span>
+    </h2>
+    <p style="font-size:.85rem;color:var(--soft);margin:4px 0">
+      Tổng: <b id="entryCount">0</b> mã.
+      Mã gốc được lưu trong localStorage của máy này — <b>backup thường xuyên</b> bằng nút bên dưới.
+    </p>
+    <div class="row">
+      <button class="ghost" id="btnReload">🔄 Load lại từ server</button>
+      <button id="btnExport">💾 Export effective-codes.json</button>
+      <button class="ghost" id="btnExportWithCodes">📦 Backup admin (kèm mã gốc)</button>
+      <button class="ghost" id="btnExportLog">📄 Tải danh sách mã (.txt)</button>
+      <button class="ghost" id="btnImportBackup">📥 Import backup</button>
+      <label class="ghost" style="cursor:pointer;display:inline-block;padding:8px 16px;border:2px solid var(--line);border-radius:10px;font-weight:700;margin-top:12px">
+        📂 Import effective-codes.json
+        <input type="file" id="fileImport" accept=".json,application/json" class="hidden">
+      </label>
+      <input type="file" id="fileBackupImport" accept=".json,application/json" class="hidden">
+      <button class="ghost warnb" id="btnReset">🗑 Xoá hết</button>
+    </div>
+    <div id="fileMsg"></div>
+    <div class="entry-list" id="entryList"></div>
+  </div>
+
+  <!-- Đổi mật khẩu -->
+  <div class="panel">
+    <h2 style="margin-top:0">Đổi mật khẩu admin</h2>
+    <p style="font-size:.85rem;color:var(--soft);margin:4px 0">
+      Copy hash → paste vào <code>ADMIN_HASH</code> trong <code>js/admin.js</code>.
+    </p>
+    <label>Mật khẩu mới</label>
+    <input type="password" id="pwNew" autocomplete="off">
+    <button id="btnHashPw">Sinh hash</button>
+    <pre id="pwHashOut"></pre>
+  </div>
+</div>
+
+<script src="js/license.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

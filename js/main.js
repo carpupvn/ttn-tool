@@ -1,0 +1,296 @@
+/* ============ GATE ============ */
+const $ = id => document.getElementById(id);
+let _licState = null;
+let _licTimer = null;
+
+function showGate(msg) {
+  $('gate').classList.remove('hidden');
+  $('app').classList.add('hidden');
+  if (msg) {
+    $('gateMsg').className = 'warn';
+    $('gateMsg').textContent = msg;
+  } else {
+    $('gateMsg').textContent = '';
+  }
+}
+function showApp(state) {
+  _licState = state;
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  renderBanner();
+  if (_licTimer) clearInterval(_licTimer);
+  _licTimer = setInterval(() => {
+    const remain = state.exp - Date.now();
+    if (remain <= 0) {
+      License.clearLicense();
+      _licState = null;
+      showGate('Mã đã hết hạn. Nhập mã mới để tiếp tục.');
+    } else renderBanner();
+  }, 60000);
+}
+function renderBanner() {
+  const remain = _licState.exp - Date.now();
+  const b = $('licBanner');
+  if (remain <= 0) { b.className = 'banner warn'; b.textContent = '⚠️ Mã đã hết hạn'; return; }
+  const cls = remain < 6 * 3600 * 1000 ? 'banner info' : 'banner ok';
+  b.className = cls;
+  b.textContent = '✓ Đã kích hoạt (' + _licState.name + ') — còn ' + License.humanRemain(remain);
+}
+
+async function activate(input) {
+  $('gateMsg').className = '';
+  $('gateMsg').textContent = 'Đang kiểm tra...';
+  const r = await License.verifyCode(input);
+  if (r.ok) {
+    const state = { ok: true, exp: r.exp, name: r.name };
+    License.saveLicense(state);
+    $('gateMsg').className = 'ok';
+    $('gateMsg').textContent = '✓ Thành công. Còn ' + License.humanRemain(r.exp - Date.now());
+    setTimeout(() => showApp(state), 400);
+  } else {
+    $('gateMsg').className = 'warn';
+    $('gateMsg').textContent = '❌ ' + r.reason;
+  }
+}
+$('gateBtn').onclick = () => activate($('gateInput').value);
+$('gateInput').addEventListener('keydown', e => { if (e.key === 'Enter') activate(e.target.value); });
+
+(function boot() {
+  const st = License.loadLicense();
+  if (st && st.exp > Date.now()) { showApp(st); return; }
+  if (st) License.clearLicense();
+  showGate();
+})();
+
+/* ============ BACKUP LOGIC ============ */
+const SALT = 'ttn-bak-7f3a';
+const START_MONEY = 500, CAP_PER_DAY = 15000000, THIEF_DAY = 30, THIEF_MONEY = 100000000;
+function bakHash(t) {
+  let h = 0x811c9dc5 >>> 0;
+  const x = SALT + t;
+  for (let i = 0; i < x.length; i++) { h ^= x.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
+}
+function b64e(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64d(t) {
+  t = t.replace(/-/g,'+').replace(/_/g,'/');
+  while (t.length % 4) t += '=';
+  const s = atob(t), u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u;
+}
+async function gzipBytes(u8) {
+  if (!window.CompressionStream) return null;
+  const st = new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(st).arrayBuffer());
+}
+async function gunzipBytes(u8) {
+  const st = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(st).arrayBuffer());
+}
+async function decodeBackup(code) {
+  code = String(code || '').replace(/\s+/g,'');
+  const m = code.match(/^TTN1\.([zp][A-Za-z0-9_-]+)\.([0-9a-z]+)$/);
+  if (!m) throw new Error('Sai định dạng TTN1');
+  if (bakHash(m[1]) !== m[2]) throw new Error('Checksum không khớp');
+  let u = b64d(m[1].slice(1));
+  if (m[1][0] === 'z') u = await gunzipBytes(u);
+  return JSON.parse(new TextDecoder().decode(u));
+}
+async function encodeBackup(obj, preferGzip = true) {
+  const raw = new TextEncoder().encode(JSON.stringify(obj));
+  let body;
+  if (preferGzip) {
+    const gz = await gzipBytes(raw);
+    body = gz ? ('z' + b64e(gz)) : ('p' + b64e(raw));
+  } else body = 'p' + b64e(raw);
+  return 'TTN1.' + body + '.' + bakHash(body);
+}
+
+/* ============ AUDIT + UI ============ */
+function computeAudit(save) {
+  const day = Number(save.day) || 0;
+  const cap = START_MONEY + day * CAP_PER_DAY;
+  const thief = day < THIEF_DAY ? THIEF_MONEY : Infinity;
+  const money = Number(save.money) || 0;
+  return {
+    day, cap, thief, safeMax: Math.min(cap, thief), money,
+    overCap: money > cap,
+    overThief: day < THIEF_DAY && money > THIEF_MONEY,
+    bad: !isFinite(money) || money < 0,
+  };
+}
+let currentSave = null;
+const SCALAR_FIELDS = [
+  { key:'money', label:'Tiền' }, { key:'day', label:'Ngày' },
+  { key:'bakDay', label:'bakDay' }, { key:'evDay', label:'evDay' },
+  { key:'totalRev', label:'Tổng doanh thu' }, { key:'totalProfit', label:'Tổng lợi nhuận' },
+  { key:'yearRev', label:'Doanh thu năm' }, { key:'taxYear', label:'Thuế năm' },
+  { key:'served', label:'Đã phục vụ' }, { key:'best', label:'Kỷ lục' },
+  { key:'revTotal', label:'Số review' }, { key:'seenLv', label:'seenLv' },
+  { key:'bungN', label:'bungN' },
+];
+function fmt(n) { return isFinite(n) ? Number(n).toLocaleString('vi-VN') : '—'; }
+function showMsg(t, c='warn') { const e = $('msg'); e.className = c; e.textContent = t; e.classList.remove('hidden'); }
+function hideMsg() { $('msg').classList.add('hidden'); }
+
+function loadSave(save) {
+  currentSave = save;
+  $('editPane').classList.remove('hidden');
+  const sg = $('scalarGrid'); sg.innerHTML = '';
+  SCALAR_FIELDS.forEach(f => {
+    if (!(f.key in save)) return;
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + f.label + '</label><input type="text" data-scalar="' + f.key + '" value="' + (save[f.key] ?? '') + '">';
+    sg.appendChild(div);
+  });
+  $('fShopName').value = save.shopName || '';
+  const uc = $('unlockChips'); uc.innerHTML = '';
+  Object.keys(save.unlocked || {}).forEach(k => {
+    const c = document.createElement('span');
+    c.className = 'chip' + (save.unlocked[k] ? ' on' : '');
+    c.dataset.unlock = k; c.textContent = k; uc.appendChild(c);
+  });
+  const gc = $('upgChips'); gc.innerHTML = '';
+  Object.keys(save.upg || {}).forEach(k => {
+    const c = document.createElement('span');
+    c.className = 'chip' + (save.upg[k] ? ' on' : '');
+    c.dataset.upg = k; c.textContent = k; gc.appendChild(c);
+  });
+  renderStock(save.stock || {});
+  $('rawJson').value = JSON.stringify(save, null, 2);
+  renderAudit(); updateScalarAlerts();
+  $('outCode').value = ''; $('btnCopy').disabled = true; $('btnDownload').disabled = true;
+}
+function renderStock(stock) {
+  const sl = $('stockList'); sl.innerHTML = '';
+  Object.keys(stock).forEach(k => {
+    const arr = stock[k] || [], q = arr[0]?.q ?? 0, exp = arr[0]?.exp ?? 0;
+    const row = document.createElement('div');
+    row.className = 'stockrow';
+    row.innerHTML = '<div class="nm">' + k + '</div>'
+      + '<input type="text" data-stock-q="' + k + '" value="' + q + '" placeholder="q">'
+      + '<input type="text" data-stock-exp="' + k + '" value="' + exp + '" placeholder="exp">';
+    sl.appendChild(row);
+  });
+}
+function renderAudit() {
+  if (!currentSave) return;
+  const a = computeAudit(currentSave);
+  let cls='ok', txt;
+  if (a.bad) { cls='warn'; txt='⚠️ money âm hoặc không hợp lệ.'; }
+  else if (a.overCap) { cls='warn'; txt='⚠️ money vượt cap → sẽ bị tịch thu.'; }
+  else if (a.overThief) { cls='warn'; txt='⚠️ day < 30 và money > 100tr → sẽ bị tịch thu.'; }
+  else { cls='ok'; txt='✅ An toàn với audit hiện tại.'; }
+  $('auditBox').innerHTML =
+    '<div class="' + cls + '">' + txt + '</div>'
+    + '<div class="kpi">'
+    + '<div>Ngày<b>' + a.day + '</b></div>'
+    + '<div>Cap<b>' + fmt(a.cap) + 'đ</b></div>'
+    + '<div>Ngưỡng trộm<b>' + (a.thief === Infinity ? '∞' : fmt(a.thief) + 'đ') + '</b></div>'
+    + '<div>Max an toàn<b>' + fmt(a.safeMax) + 'đ</b></div>'
+    + '<div>Money<b>' + fmt(a.money) + 'đ</b></div>'
+    + '</div>';
+}
+function updateScalarAlerts() {
+  if (!currentSave) return;
+  const money = Number(currentSave.money) || 0;
+  const day = Number(currentSave.day) || 0;
+  const cap = START_MONEY + day * CAP_PER_DAY;
+  const thief = day < THIEF_DAY ? THIEF_MONEY : Infinity;
+  const over = money > cap || money > thief || money < 0;
+  document.querySelectorAll('[data-scalar="money"]').forEach(inp => {
+    inp.closest('.field').classList.toggle('alert', over);
+    const s = inp.closest('.field').querySelector('small');
+    if (s) s.remove();
+    if (over) {
+      const sm = document.createElement('small');
+      sm.textContent = money < 0 ? 'Số âm → sẽ bị phạt' : 'Vượt ngưỡng → sẽ bị tịch thu';
+      inp.closest('.field').appendChild(sm);
+    }
+  });
+}
+document.addEventListener('input', e => {
+  if (!currentSave) return;
+  const t = e.target;
+  if (t.dataset.scalar) {
+    const k = t.dataset.scalar;
+    const v = Number(String(t.value).replace(/[^\d.-]/g,''));
+    currentSave[k] = isFinite(v) ? v : t.value;
+    renderAudit(); updateScalarAlerts(); return;
+  }
+  if (t.id === 'fShopName') { currentSave.shopName = t.value; return; }
+  if (t.dataset.stockQ !== undefined) {
+    const k = t.dataset.stockQ, v = Math.max(0, Math.floor(Number(t.value)||0));
+    const exp = currentSave.stock[k]?.[0]?.exp ?? 0;
+    currentSave.stock[k] = [{ q: v, exp }]; return;
+  }
+  if (t.dataset.stockExp !== undefined) {
+    const k = t.dataset.stockExp, v = Math.max(0, Math.floor(Number(t.value)||0));
+    const q = currentSave.stock[k]?.[0]?.q ?? 0;
+    currentSave.stock[k] = [{ q, exp: v }]; return;
+  }
+});
+document.addEventListener('click', e => {
+  if (!currentSave) return;
+  const c = e.target.closest('.chip'); if (!c) return;
+  if (c.dataset.unlock) {
+    const k = c.dataset.unlock;
+    currentSave.unlocked[k] = !currentSave.unlocked[k];
+    c.classList.toggle('on', currentSave.unlocked[k]);
+  } else if (c.dataset.upg) {
+    const k = c.dataset.upg;
+    currentSave.upg[k] = !currentSave.upg[k];
+    c.classList.toggle('on', currentSave.upg[k]);
+  }
+});
+$('btnLoad').onclick = async () => {
+  hideMsg();
+  try {
+    const code = $('inCode').value.trim();
+    if (!code) return showMsg('Chưa có mã.');
+    const save = await decodeBackup(code);
+    loadSave(save); showMsg('Giải mã thành công.', 'ok');
+  } catch (err) { showMsg('Lỗi: ' + err.message, 'warn'); }
+};
+$('inFile').onchange = e => {
+  const f = e.target.files?.[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { $('inCode').value = String(r.result || '').trim(); };
+  r.readAsText(f, 'utf-8');
+};
+$('btnClear').onclick = () => { $('inCode').value = ''; $('editPane').classList.add('hidden'); currentSave = null; hideMsg(); };
+$('btnUnlockAll').onclick = () => { if (!currentSave) return; Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = true); document.querySelectorAll('[data-unlock]').forEach(c => c.classList.add('on')); };
+$('btnUnlockNone').onclick = () => { if (!currentSave) return; Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = false); document.querySelectorAll('[data-unlock]').forEach(c => c.classList.remove('on')); };
+$('btnUpgAll').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = true); document.querySelectorAll('[data-upg]').forEach(c => c.classList.add('on')); };
+$('btnUpgNone').onclick = () => { if (!currentSave) return; Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = false); document.querySelectorAll('[data-upg]').forEach(c => c.classList.remove('on')); };
+$('btnStockMax').onclick = () => { if (!currentSave) return; Object.keys(currentSave.stock).forEach(k => currentSave.stock[k] = [{ q: 999, exp: 9999 }]); renderStock(currentSave.stock); };
+$('btnApplyRaw').onclick = () => { try { loadSave(JSON.parse($('rawJson').value)); showMsg('Đã áp dụng.', 'ok'); } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); } };
+$('btnRefreshRaw').onclick = () => { if (currentSave) $('rawJson').value = JSON.stringify(currentSave, null, 2); };
+$('btnEncode').onclick = async () => {
+  if (!currentSave) return;
+  try {
+    const code = await encodeBackup(currentSave);
+    $('outCode').value = code;
+    $('btnCopy').disabled = false; $('btnDownload').disabled = false;
+    showMsg('Đã tạo mã mới.', 'ok');
+  } catch (err) { showMsg('Lỗi: ' + err.message, 'warn'); }
+};
+$('btnCopy').onclick = async () => {
+  const c = $('outCode').value; if (!c) return;
+  try { await navigator.clipboard.writeText(c); showMsg('Đã copy.', 'ok'); }
+  catch { $('outCode').select(); document.execCommand('copy'); showMsg('Đã copy.', 'ok'); }
+};
+$('btnDownload').onclick = () => {
+  const c = $('outCode').value; if (!c) return;
+  const blob = new Blob([c], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ttn-backup-' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};

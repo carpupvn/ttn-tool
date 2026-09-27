@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiệm Trà Nhỏ — Save Editor</title>
+<meta name="color-scheme" content="only light">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<a href="admin.html" class="mode-switch" title="Chuyển sang chế độ Admin">
+  <span class="ico">⚙</span>
+  <span>Admin</span>
+</a>
+
+<div class="wrap">
+
+  <!-- ===== GATE ===== -->
+  <div id="gate" class="gate hidden">
+    <div class="panel">
+      <h2 style="margin-top:0">🔒 Cần mã truy cập</h2>
+      <p class="sub">Nhập mã để dùng tool. Mã có thời hạn.</p>
+      <input type="text" id="gateInput" placeholder="HTTN1-XXXX-XXXX-XXXX-XXXX" autocomplete="off">
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button id="gateBtn">Kích hoạt</button>
+      </div>
+      <div id="gateMsg"></div>
+      <p class="sub" style="font-size:.8rem;margin-top:18px">
+        Liên hệ nhận mã: <b>&lt;email/discord của bạn&gt;</b>
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== APP ===== -->
+  <div id="app" class="hidden">
+    <div id="licBanner" class="banner ok"></div>
+
+    <h1>Tiệm Trà Nhỏ — Save Editor</h1>
+    <p class="sub">Công cụ chỉnh mã sao lưu (offline, chạy hoàn toàn trong trình duyệt).</p>
+
+    <div class="legal">
+      <b>⚠️ Cảnh báo pháp lý &amp; đạo đức</b><br>
+      Đây là công cụ <b>không chính thức</b>, không liên kết với tác giả game.
+      Mã sao lưu chỉ chứa dữ liệu của <b>chính bạn</b>. Việc sửa save có thể vi phạm
+      điều khoản sử dụng của game (nếu có). Bạn tự chịu mọi rủi ro về tiến trình,
+      tài khoản, thiết bị. Không dùng để gian lận trong môi trường cạnh tranh,
+      không phát tán save đã sửa như save gốc. Tác giả công cụ không chịu trách
+      nhiệm cho bất kỳ hậu quả nào.
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">1. Nhập mã sao lưu</h2>
+      <textarea id="inCode" placeholder="Dán mã TTN1... vào đây"></textarea>
+      <div class="row">
+        <button id="btnLoad">Giải mã</button>
+        <label class="chip" style="cursor:pointer">📂 Tải file .txt
+          <input type="file" id="inFile" accept=".txt,text/plain" class="hidden">
+        </label>
+        <button class="ghost" id="btnClear">Xoá</button>
+      </div>
+      <div id="msg" class="hidden"></div>
+    </div>
+
+    <div id="editPane" class="hidden">
+      <div class="panel">
+        <h2 style="margin-top:0">2. Kiểm tra audit</h2>
+        <div id="auditBox"></div>
+        <div class="tip">
+          Game sẽ <b>tịch thu toàn bộ tiền</b> nếu:
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li><code>money &gt; cap</code>, với <code>cap = 500 + day × 15.000.000</code></li>
+            <li>hoặc <code>day &lt; 30</code> và <code>money &gt; 100.000.000</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-top:0">3. Chỉnh chỉ số</h2>
+        <h3>Tiền &amp; ngày</h3>
+        <div class="grid" id="scalarGrid"></div>
+        <h3>Shop</h3>
+        <div class="grid">
+          <div class="field">
+            <label>Tên quán</label>
+            <input type="text" id="fShopName">
+          </div>
+        </div>
+        <h3>Mở khoá món</h3>
+        <div class="row">
+          <button class="ghost" id="btnUnlockAll">Mở tất cả</button>
+          <button class="ghost" id="btnUnlockNone">Khoá tất cả</button>
+        </div>
+        <div class="chips" id="unlockChips"></div>
+        <h3>Nâng cấp / nhân viên</h3>
+        <div class="row">
+          <button class="ghost" id="btnUpgAll">Bật tất cả</button>
+          <button class="ghost" id="btnUpgNone">Tắt tất cả</button>
+        </div>
+        <div class="chips" id="upgChips"></div>
+        <h3>Tồn kho</h3>
+        <div class="row">
+          <button class="ghost" id="btnStockMax">Đặt tất cả = 999 / exp 9999</button>
+        </div>
+        <div id="stockList" style="margin-top:8px"></div>
+        <details>
+          <summary>Sửa JSON thô (nâng cao)</summary>
+          <textarea id="rawJson" style="margin-top:8px;min-height:220px"></textarea>
+          <div class="row">
+            <button class="ghost" id="btnApplyRaw">Áp dụng JSON</button>
+            <button class="ghost" id="btnRefreshRaw">Load lại JSON</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-top:0">4. Xuất mã mới</h2>
+        <div class="row">
+          <button id="btnEncode">Mã hoá</button>
+          <button class="ghost" id="btnCopy" disabled>Copy</button>
+          <button class="ghost" id="btnDownload" disabled>Tải file</button>
+        </div>
+        <textarea id="outCode" readonly style="margin-top:10px" placeholder="Mã mới sẽ hiện ở đây"></textarea>
+      </div>
+    </div>
+
+    <p class="footer">
+      Chạy offline · Không gửi dữ liệu đi đâu
+    </p>
+  </div>
+</div>
+
+<script src="js/license.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
