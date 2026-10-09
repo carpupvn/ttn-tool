@@ -58,7 +58,7 @@
 
     <div class="panel appear" style="animation-delay:.15s">
       <h2 style="margin-top:0">1. Nhập mã sao lưu</h2>
-      <textarea id="inCode" placeholder="Dán mã TTN1... vào đây"></textarea>
+      <textarea id="inCode" placeholder="Dán mã TTN1... hoặc TTN2... vào đây"></textarea>
       <div class="row">
         <button id="btnLoad">Giải mã</button>
         <label class="chip" style="cursor:pointer">📂 Tải file .txt
@@ -118,6 +118,47 @@
           <button class="ghost" id="btnUpgNone">Tắt tất cả</button>
         </div>
         <div class="chips" id="upgChips"></div>
+
+        <h3>Cấp nâng cấp (upgLv)</h3>
+        <div class="grid" id="upgLvGrid"></div>
+
+        <h3>Cấp trang bị (equipLv)</h3>
+        <div class="grid" id="equipLvGrid"></div>
+
+        <h3>Giá bán từng món (sell)</h3>
+        <div class="tip">Sửa giá bán ảnh hưởng trực tiếp tới thu nhập. Đừng để lệch quá so với giá gốc — dễ bị audit.</div>
+        <div class="grid" id="sellGrid"></div>
+
+        <h3>Nhân viên đã thuê</h3>
+        <div class="chips" id="hiredChips"></div>
+
+        <h3>Ứng dụng đã tham gia</h3>
+        <div class="chips" id="appsChips"></div>
+
+        <h3>Ngân hàng</h3>
+        <div class="grid" id="bankGrid"></div>
+
+        <h3>Thú cưng</h3>
+        <div class="grid" id="petGrid"></div>
+        <div class="row">
+          <button class="ghost" id="btnPetMax">🐾 Max pet</button>
+        </div>
+
+        <h3>Vườn</h3>
+        <div class="row">
+          <button class="ghost" id="btnGardenUnlock">🌱 Mở hết plot</button>
+          <button class="ghost" id="btnGardenSeeds">🌰 Max hạt</button>
+        </div>
+
+        <h3>Chi nhánh đã mở</h3>
+        <div class="chips" id="branchChips"></div>
+
+        <h3>Sảnh chờ (lobby rooms)</h3>
+        <div class="chips" id="lobbyChips"></div>
+
+        <h3>Khác</h3>
+        <div class="grid" id="miscGrid"></div>
+
         <h3>Tồn kho</h3>
         <div class="row">
           <button class="ghost" id="btnStockMax">Đặt tất cả = 999 / exp 9999</button>
@@ -135,6 +176,15 @@
 
       <div class="panel">
         <h2 style="margin-top:0">4. Xuất mã mới</h2>
+        <div class="row">
+          <div class="field" style="min-width:220px;margin:0">
+            <label>Định dạng mã xuất</label>
+            <select id="encFormat">
+              <option value="TTN1">TTN1 (có checksum, dài hơn)</option>
+              <option value="TTN2">TTN2 (rút gọn, không checksum)</option>
+            </select>
+          </div>
+        </div>
         <div class="row">
           <button id="btnEncode">Mã hoá</button>
           <button class="ghost" id="btnCopy" disabled>Copy</button>

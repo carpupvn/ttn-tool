@@ -34,7 +34,6 @@ body::after{
   animation:bgShift 20s ease-in-out infinite alternate;
 }
 
-/* ============ Keyframes ============ */
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
@@ -63,7 +62,6 @@ body::after{
   animation:fadeInUp .7s var(--ease-out) forwards;
 }
 
-/* ============ Floating deco ============ */
 .deco{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .deco-item{position:absolute;font-size:1.6rem;opacity:.12;filter:blur(.5px);will-change:transform}
 .deco-item.d1{top:12%;left:6%;animation:float1 14s ease-in-out infinite}
@@ -132,7 +130,17 @@ input:focus{
   box-shadow:0 0 0 4px rgba(239,111,142,.12);
 }
 
-/* ============ Buttons ============ */
+select{
+  width:100%;border:2px solid var(--line);background:var(--bg);
+  color:var(--ink);border-radius:8px;padding:6px 10px;
+  font:inherit;font-size:.92rem;
+  transition:border-color .2s, box-shadow .2s;
+}
+select:focus{
+  outline:none;border-color:var(--pink);
+  box-shadow:0 0 0 4px rgba(239,111,142,.12);
+}
+
 button{
   font:inherit;border:2px solid var(--pink);
   background:var(--pink);color:#fff;border-radius:10px;
@@ -168,10 +176,7 @@ button.ghost .ripple{background:rgba(239,111,142,.35)}
 .field.alert input{border-color:var(--warn);animation:wobble .4s}
 .field.alert small{color:var(--warn);font-weight:700}
 
-/* ============ Chips (cải thiện) ============ */
-.chips{
-  display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;
-}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .chip{
   border:2px solid var(--line);background:var(--bg);
   border-radius:14px;padding:6px 12px;
@@ -183,18 +188,11 @@ button.ghost .ripple{background:rgba(239,111,142,.35)}
   min-width:0;
 }
 .chip:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
-.chip .chip-name{
-  font-size:.88rem;
-  white-space:nowrap;
-}
+.chip .chip-name{font-size:.88rem;white-space:nowrap}
 .chip .chip-id{
-  font-size:.62rem;
-  font-weight:600;
-  color:var(--soft);
+  font-size:.62rem;font-weight:600;color:var(--soft);
   font-family:ui-monospace,Consolas,monospace;
-  opacity:.65;
-  letter-spacing:.3px;
-  white-space:nowrap;
+  opacity:.65;letter-spacing:.3px;white-space:nowrap;
 }
 .chip.on{
   border-color:var(--pink);background:var(--pink);color:#fff;
@@ -202,64 +200,37 @@ button.ghost .ripple{background:rgba(239,111,142,.35)}
   box-shadow:0 2px 8px rgba(239,111,142,.35);
 }
 .chip.on .chip-id{color:rgba(255,255,255,.75);opacity:.9}
-@keyframes chipPop{
-  0%{transform:scale(1)}
-  40%{transform:scale(1.12)}
-  100%{transform:scale(1)}
-}
+@keyframes chipPop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
 
-/* Chips có nhóm */
-.chips.grouped{
-  display:block;
-  margin-top:6px;
-}
+.chips.grouped{display:block;margin-top:6px}
 .chip-group{
-  margin-bottom:14px;
-  padding:10px 12px;
+  margin-bottom:14px;padding:10px 12px;
   background:rgba(255,255,255,.4);
-  border-radius:12px;
-  border:1px dashed var(--line);
+  border-radius:12px;border:1px dashed var(--line);
 }
 .chip-group-title{
-  font-size:.75rem;
-  font-weight:800;
-  color:var(--pink-d);
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  margin-bottom:8px;
-  display:flex;align-items:center;gap:6px;
+  font-size:.75rem;font-weight:800;color:var(--pink-d);
+  letter-spacing:.5px;text-transform:uppercase;
+  margin-bottom:8px;display:flex;align-items:center;gap:6px;
 }
 .chip-group-title::before{
-  content:'';
-  display:inline-block;
-  width:4px;height:14px;
-  background:var(--pink);
-  border-radius:2px;
+  content:'';display:inline-block;
+  width:4px;height:14px;background:var(--pink);border-radius:2px;
 }
 
-/* ============ Stock (cải thiện) ============ */
 .stock-section{
-  margin-bottom:14px;
-  padding:10px 12px;
+  margin-bottom:14px;padding:10px 12px;
   background:rgba(255,255,255,.4);
-  border-radius:12px;
-  border:1px dashed var(--line);
+  border-radius:12px;border:1px dashed var(--line);
 }
 .stock-title{
-  font-size:.75rem;
-  font-weight:800;
-  color:var(--pink-d);
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  margin-bottom:8px;
-  display:flex;align-items:center;gap:6px;
+  font-size:.75rem;font-weight:800;color:var(--pink-d);
+  letter-spacing:.5px;text-transform:uppercase;
+  margin-bottom:8px;display:flex;align-items:center;gap:6px;
 }
 .stock-title::before{
-  content:'';
-  display:inline-block;
-  width:4px;height:14px;
-  background:var(--pink);
-  border-radius:2px;
+  content:'';display:inline-block;
+  width:4px;height:14px;background:var(--pink);border-radius:2px;
 }
 .stockrow{
   display:grid;grid-template-columns:1fr 90px 90px;
@@ -273,9 +244,7 @@ button.ghost .ripple{background:rgba(239,111,142,.35)}
   color:var(--ink);font-weight:700;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.stockrow input{
-  font-size:.85rem;padding:5px 8px;text-align:center;
-}
+.stockrow input{font-size:.85rem;padding:5px 8px;text-align:center}
 
 .kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
 .kpi div{
@@ -298,7 +267,6 @@ details[open] summary::before{transform:rotate(90deg)}
 details summary:hover{color:var(--pink-d)}
 code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
 
-/* ============ Gate ============ */
 .gate{max-width:480px;margin:60px auto;text-align:center}
 .gate-panel{animation:scaleIn .5s var(--ease-bounce), fadeIn .4s}
 .gate-icon{
@@ -312,7 +280,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
 }
 .gate input:focus{animation:pulseGlow 1.5s ease-out infinite}
 
-/* ============ Banner ============ */
 .banner{
   border-radius:10px;padding:8px 14px;margin-bottom:14px;
   font-size:.85rem;font-weight:700;text-align:center;
@@ -332,7 +299,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
 
 .footer{text-align:center;font-size:.75rem;color:var(--soft);margin-top:24px}
 
-/* ============ Mode switch ============ */
 .mode-switch{
   position:fixed;top:16px;right:16px;z-index:50;
   display:flex;align-items:center;gap:6px;
@@ -356,7 +322,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
 }
 .mode-switch:hover .ico{transform:rotate(180deg)}
 
-/* ============ Spinner ============ */
 .spinner{
   display:inline-block;width:14px;height:14px;
   border:2px solid var(--line);border-top-color:var(--pink);
@@ -365,7 +330,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
   vertical-align:-2px;margin-right:6px;
 }
 
-/* ============ Stagger ============ */
 .grid > .field{
   opacity:0;
   animation:fadeInUp .5s var(--ease-out) forwards;
@@ -388,7 +352,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
 .chips > .chip:nth-child(odd){animation-delay:.02s}
 .chips > .chip:nth-child(even){animation-delay:.05s}
 
-/* ============ Responsive ============ */
 @media (max-width:600px){
   .stockrow{grid-template-columns:1fr 70px 70px;gap:6px;font-size:.82rem}
   .stockrow input{font-size:.78rem;padding:4px 4px}
@@ -398,7 +361,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:.85em}
   .deco-item{font-size:1.2rem}
 }
 
-/* ============ Reduced motion ============ */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{
     animation-duration:.01ms !important;

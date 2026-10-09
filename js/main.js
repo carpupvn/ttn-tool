@@ -34,10 +34,13 @@ const ITEM_NAMES = {
   seats:'Bàn ghế', motorbike:'Xe máy', ads:'Quảng cáo', slot4:'Mở rộng quầy',
   floor2:'Nâng tầng', ac:'Máy lạnh', brandKit:'Bộ nhận diện',
   staff0:'Nhân viên 1', staff1:'Nhân viên 2', staff2:'Nhân viên 3',
-  staffBuyer:'Nhân viên đi chợ', staffMkt:'Nhân viên Marketing',
+  staffBuyer:'NV đi chợ', staffMkt:'NV Marketing', staffOn:'NV Online',
   binhrot:'Bình rót trà', khaytop:'Khay topping', lyduongda:'Ly, đường, đá',
   huong:'Level Hương', top:'Level Topping', equip:'Level Trang bị',
   staff:'Level Nhân viên', onl:'Level Online',
+  sp:'ShopeeFood', tt:'TikTok', be:'BeFood', gr:'GrabFood',
+  school:'Chi nhánh Trường học', tech:'Chi nhánh Khu công nghệ',
+  mall:'Chi nhánh TTTM', walking:'Chi nhánh Phố đi bộ',
   default:'Mặc định',
 };
 
@@ -48,7 +51,7 @@ const ITEM_GROUPS = [
   { title: 'Topping',      keys: ['popping','thach','cunang','thachtc','suongsao','thachcf','cheese','fmatcha','fsalt','fube','pmvien','pmtuoi','thachpm'] },
   { title: 'Nguyên liệu',  keys: ['cup','ice','sugar'] },
   { title: 'Nâng cấp',     keys: ['sealer','fridge','mascot','sign','seats','motorbike','ads','slot4','floor2','ac','brandKit'] },
-  { title: 'Nhân viên',    keys: ['staff0','staff1','staff2','staffBuyer','staffMkt'] },
+  { title: 'Nhân viên',    keys: ['staff0','staff1','staff2','staffBuyer','staffMkt','staffOn'] },
 ];
 
 function getName(id) { return ITEM_NAMES[id] || id; }
@@ -141,22 +144,39 @@ async function gunzipBytes(u8) {
   const st = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new Uint8Array(await new Response(st).arrayBuffer());
 }
+
 async function decodeBackup(code) {
   code = String(code || '').replace(/\s+/g,'');
-  const m = code.match(/^TTN1\.([zp][A-Za-z0-9_-]+)\.([0-9a-z]+)$/);
-  if (!m) throw new Error('Sai định dạng TTN1');
-  if (bakHash(m[1]) !== m[2]) throw new Error('Checksum không khớp');
-  let u = b64d(m[1].slice(1));
-  if (m[1][0] === 'z') u = await gunzipBytes(u);
-  return JSON.parse(new TextDecoder().decode(u));
+
+  // TTN1.<body>.<checksum>
+  let m = code.match(/^TTN1\.([zp][A-Za-z0-9_-]+)\.([0-9a-z]+)$/);
+  if (m) {
+    if (bakHash(m[1]) !== m[2]) throw new Error('Checksum không khớp');
+    let u = b64d(m[1].slice(1));
+    if (m[1][0] === 'z') u = await gunzipBytes(u);
+    return JSON.parse(new TextDecoder().decode(u));
+  }
+
+  // TTN2.<body>  (rút gọn, không checksum)
+  m = code.match(/^TTN2\.([zp][A-Za-z0-9_-]+)$/);
+  if (m) {
+    let u = b64d(m[1].slice(1));
+    if (m[1][0] === 'z') u = await gunzipBytes(u);
+    return JSON.parse(new TextDecoder().decode(u));
+  }
+
+  throw new Error('Sai định dạng TTN1/TTN2');
 }
-async function encodeBackup(obj, preferGzip = true) {
+
+async function encodeBackup(obj, format = 'TTN1', preferGzip = true) {
   const raw = new TextEncoder().encode(JSON.stringify(obj));
   let body;
   if (preferGzip) {
     const gz = await gzipBytes(raw);
     body = gz ? ('z' + b64e(gz)) : ('p' + b64e(raw));
   } else body = 'p' + b64e(raw);
+
+  if (format === 'TTN2') return 'TTN2.' + body;
   return 'TTN1.' + body + '.' + bakHash(body);
 }
 
@@ -211,6 +231,15 @@ function loadSave(save) {
   renderUpgChips(save.upg || {});
   renderStock(save.stock || {});
   renderReviews(save.reviews || []);
+  renderUpgLv(save.upgLv || {});
+  renderEquipLv(save.equipLv || {});
+  renderSellGrid(save.sell || {});
+  renderChipsFromBool('hiredChips', 'hired', save.hired || {});
+  renderChipsFromBool('appsChips', 'apps', save.apps || {});
+  renderBankGrid(save.bank || {});
+  renderPetGrid(save);
+  renderBranchesChips(save.branches || {});
+  renderMiscGrid(save);
 
   $('rawJson').value = JSON.stringify(save, null, 2);
   renderAudit();
@@ -358,6 +387,170 @@ function renderReviews(reviews) {
     + '</div>';
 }
 
+/* ============ RENDER UPG LV ============ */
+const UPG_LV_LABELS = {
+  tra:'Level Trà', huong:'Level Hương', top:'Level Topping',
+  equip:'Level Trang bị', staff:'Level Nhân viên', onl:'Level Online',
+};
+const EQUIP_LV_LABELS = {
+  binhrot:'Bình rót trà', sealer:'Máy dán nắp',
+  khaytop:'Khay topping', lyduongda:'Ly, đường, đá',
+};
+
+function renderUpgLv(upgLv) {
+  const box = $('upgLvGrid'); if (!box) return;
+  box.innerHTML = '';
+  Object.keys(upgLv).forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + (UPG_LV_LABELS[k] || k) + '</label>'
+      + '<input type="text" data-upglv="' + k + '" value="' + (upgLv[k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+}
+
+function renderEquipLv(equipLv) {
+  const box = $('equipLvGrid'); if (!box) return;
+  box.innerHTML = '';
+  Object.keys(equipLv).forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + (EQUIP_LV_LABELS[k] || k) + '</label>'
+      + '<input type="text" data-equiplv="' + k + '" value="' + (equipLv[k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+}
+
+/* ============ RENDER SELL PRICES ============ */
+function renderSellGrid(sell) {
+  const box = $('sellGrid'); if (!box) return;
+  box.innerHTML = '';
+  Object.keys(sell).forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + getName(k) + '</label>'
+      + '<input type="text" data-sell="' + k + '" value="' + (sell[k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+}
+
+/* ============ RENDER CHIPS TỪ OBJECT BOOL ============ */
+const HIRED_LABELS = {
+  staff0:'NV 1', staff1:'NV 2', staff2:'NV 3',
+  staffBuyer:'NV đi chợ', staffMkt:'NV Marketing', staffOn:'NV Online',
+};
+const APP_LABELS = {
+  sp:'ShopeeFood', tt:'TikTok', be:'BeFood', gr:'GrabFood',
+};
+function renderChipsFromBool(boxId, dataKey, obj) {
+  const box = $(boxId); if (!box) return;
+  box.innerHTML = '';
+  const labelMap = dataKey === 'hired' ? HIRED_LABELS : (dataKey === 'apps' ? APP_LABELS : {});
+  Object.keys(obj).forEach(k => {
+    const c = document.createElement('span');
+    c.className = 'chip' + (obj[k] ? ' on' : '');
+    c.dataset[dataKey] = k;
+    c.innerHTML = '<span class="chip-name">' + (labelMap[k] || getName(k)) + '</span>'
+                + '<span class="chip-id">' + k + '</span>';
+    box.appendChild(c);
+  });
+}
+
+/* ============ RENDER BANK ============ */
+function renderBankGrid(bank) {
+  const box = $('bankGrid'); if (!box) return;
+  const fields = [
+    { k:'cap', label:'Hạn mức (cap)' },
+    { k:'balance', label:'Số dư tiết kiệm' },
+    { k:'principal', label:'Tiền gốc' },
+    { k:'termDays', label:'Kỳ hạn (ngày)' },
+    { k:'daysPassed', label:'Ngày đã gửi' },
+    { k:'totalInterest', label:'Lãi tích lũy' },
+  ];
+  box.innerHTML = '';
+  fields.forEach(f => {
+    if (!(f.k in bank)) return;
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + f.label + '</label>'
+      + '<input type="text" data-bank="' + f.k + '" value="' + (bank[f.k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+}
+
+/* ============ RENDER PET ============ */
+function renderPetGrid(save) {
+  const box = $('petGrid'); if (!box) return;
+  const pet = save.pet || {};
+  box.innerHTML = '';
+  const items = [
+    { k:'level', label:'Cấp' },
+    { k:'exp', label:'EXP' },
+    { k:'hunger', label:'Đói' },
+    { k:'clean', label:'Sạch' },
+    { k:'happiness', label:'Vui' },
+    { k:'energy', label:'Năng lượng' },
+  ];
+  items.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + it.label + '</label>'
+      + '<input type="text" data-pet="' + it.k + '" value="' + (pet[it.k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+}
+
+/* ============ RENDER BRANCHES ============ */
+function renderBranchesChips(branches) {
+  const box = $('branchChips'); if (!box) return;
+  box.innerHTML = '';
+  Object.keys(branches).forEach(k => {
+    const b = branches[k];
+    const c = document.createElement('span');
+    c.className = 'chip' + (b.bought ? ' on' : '');
+    c.dataset.branch = k;
+    c.innerHTML = '<span class="chip-name">' + getName(k) + '</span>'
+                + '<span class="chip-id">Lv ' + (b.level || 0) + '</span>';
+    box.appendChild(c);
+  });
+}
+
+/* ============ RENDER MISC ============ */
+function renderMiscGrid(save) {
+  const box = $('miscGrid'); if (!box) return;
+  const items = [
+    { k:'tablets', label:'Số tablet' },
+    { k:'star5Count', label:'Số lần 5 sao' },
+    { k:'chestUses', label:'Đã mở hộp quà' },
+    { k:'giftsReceivedToday', label:'Quà nhận hôm nay' },
+    { k:'tiktokerViralDays', label:'Ngày viral TikTok' },
+  ];
+  box.innerHTML = '';
+  items.forEach(it => {
+    if (!(it.k in save)) return;
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.innerHTML = '<label>' + it.label + '</label>'
+      + '<input type="text" data-misc="' + it.k + '" value="' + (save[it.k] ?? 0) + '">';
+    box.appendChild(div);
+  });
+
+  // Lobby rooms
+  const lobby = save.lobbyRooms || [];
+  const lb = $('lobbyChips');
+  if (lb) {
+    lb.innerHTML = '';
+    lobby.forEach((v, i) => {
+      const c = document.createElement('span');
+      c.className = 'chip' + (v ? ' on' : '');
+      c.dataset.lobby = i;
+      c.innerHTML = '<span class="chip-name">Phòng ' + (i + 1) + '</span>'
+                  + '<span class="chip-id">' + (v ? 'ON' : 'OFF') + '</span>';
+      lb.appendChild(c);
+    });
+  }
+}
+
 /* ============ RENDER AUDIT ============ */
 function renderAudit() {
   if (!currentSave) return;
@@ -418,6 +611,30 @@ document.addEventListener('input', e => {
     const q = currentSave.stock[k]?.[0]?.q ?? 0;
     currentSave.stock[k] = [{ q, exp: v }]; return;
   }
+  if (t.dataset.upglv !== undefined) {
+    const k = t.dataset.upglv, v = Math.max(0, Math.floor(Number(t.value)||0));
+    currentSave.upgLv[k] = v; return;
+  }
+  if (t.dataset.equiplv !== undefined) {
+    const k = t.dataset.equiplv, v = Math.max(0, Math.floor(Number(t.value)||0));
+    currentSave.equipLv[k] = v; return;
+  }
+  if (t.dataset.sell !== undefined) {
+    const k = t.dataset.sell, v = Math.max(0, Math.floor(Number(t.value)||0));
+    currentSave.sell[k] = v; return;
+  }
+  if (t.dataset.bank !== undefined) {
+    const k = t.dataset.bank, v = Math.max(0, Math.floor(Number(t.value)||0));
+    currentSave.bank[k] = v; return;
+  }
+  if (t.dataset.pet !== undefined) {
+    const k = t.dataset.pet, v = Math.max(0, Math.floor(Number(t.value)||0));
+    currentSave.pet[k] = v; return;
+  }
+  if (t.dataset.misc !== undefined) {
+    const k = t.dataset.misc, v = Number(t.value);
+    currentSave[k] = isFinite(v) ? v : t.value; return;
+  }
 });
 
 document.addEventListener('click', e => {
@@ -427,10 +644,40 @@ document.addEventListener('click', e => {
     const k = c.dataset.unlock;
     currentSave.unlocked[k] = !currentSave.unlocked[k];
     c.classList.toggle('on', currentSave.unlocked[k]);
-  } else if (c.dataset.upg) {
+    return;
+  }
+  if (c.dataset.upg) {
     const k = c.dataset.upg;
     currentSave.upg[k] = !currentSave.upg[k];
     c.classList.toggle('on', currentSave.upg[k]);
+    return;
+  }
+  if (c.dataset.hired) {
+    const k = c.dataset.hired;
+    currentSave.hired[k] = !currentSave.hired[k];
+    c.classList.toggle('on', currentSave.hired[k]);
+    return;
+  }
+  if (c.dataset.apps) {
+    const k = c.dataset.apps;
+    currentSave.apps[k] = !currentSave.apps[k];
+    c.classList.toggle('on', currentSave.apps[k]);
+    return;
+  }
+  if (c.dataset.branch) {
+    const k = c.dataset.branch;
+    if (!currentSave.branches[k]) return;
+    currentSave.branches[k].bought = !currentSave.branches[k].bought;
+    c.classList.toggle('on', currentSave.branches[k].bought);
+    return;
+  }
+  if (c.dataset.lobby !== undefined) {
+    const i = Number(c.dataset.lobby);
+    currentSave.lobbyRooms[i] = !currentSave.lobbyRooms[i];
+    c.classList.toggle('on', currentSave.lobbyRooms[i]);
+    const idEl = c.querySelector('.chip-id');
+    if (idEl) idEl.textContent = currentSave.lobbyRooms[i] ? 'ON' : 'OFF';
+    return;
   }
 });
 
@@ -501,9 +748,8 @@ $('btnRev5').onclick = () => {
   if (!confirm('Đổi toàn bộ đánh giá (trừ review mốc hệ thống) thành 5 sao?')) return;
   let n = 0;
   currentSave.reviews.forEach(r => {
-    if (r.isMilestoneReset) return;   // giữ nguyên review mốc
+    if (r.isMilestoneReset) return;
     if (typeof r.s === 'number') {
-      // Nếu có mktStarUp (marketing đã nâng sao), reset về origS = 5 để khỏi xung đột
       if (r.mktStarUp && typeof r.origS === 'number') {
         r.origS = 5;
         delete r.mktStarUp;
@@ -514,7 +760,6 @@ $('btnRev5').onclick = () => {
       n++;
     }
   });
-  // Cập nhật lại star5Count ở top-level (đếm số review 5 sao của real khách)
   const real5 = currentSave.reviews.filter(r => !r.isMilestoneReset && r.s === 5).length;
   if ('star5Count' in currentSave) currentSave.star5Count = Math.max(currentSave.star5Count || 0, real5);
   renderReviews(currentSave.reviews);
@@ -550,6 +795,36 @@ $('btnRevRefresh').onclick = () => {
   renderReviews(currentSave.reviews || []);
 };
 
+/* ===== PET / GARDEN ===== */
+$('btnPetMax').onclick = () => {
+  if (!currentSave || !currentSave.pet) return;
+  const p = currentSave.pet;
+  p.unlocked = true;
+  p.level = Math.max(p.level || 1, 20);
+  p.hunger = 220; p.clean = 220; p.happiness = 220; p.energy = 220;
+  p.currentAction = null; p.ranAway = false;
+  renderPetGrid(currentSave);
+  $('rawJson').value = JSON.stringify(currentSave, null, 2);
+  showMsg('✓ Đã max pet.', 'ok');
+};
+
+$('btnGardenUnlock').onclick = () => {
+  if (!currentSave || !currentSave.garden) return;
+  currentSave.garden.unlocked = true;
+  currentSave.garden.plots.forEach(p => { p.locked = false; });
+  $('rawJson').value = JSON.stringify(currentSave, null, 2);
+  showMsg('✓ Đã mở hết plot vườn.', 'ok');
+};
+
+$('btnGardenSeeds').onclick = () => {
+  if (!currentSave || !currentSave.garden) return;
+  const g = currentSave.garden;
+  g.seeds = g.seeds || {};
+  ['mint','strawberry','lemon','peach','mango','tea'].forEach(k => { g.seeds[k] = 99; });
+  $('rawJson').value = JSON.stringify(currentSave, null, 2);
+  showMsg('✓ Đã max hạt giống.', 'ok');
+};
+
 $('btnApplyRaw').onclick = () => {
   try {
     loadSave(JSON.parse($('rawJson').value));
@@ -567,11 +842,12 @@ $('btnEncode').onclick = async () => {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Đang tạo...';
   try {
-    const code = await encodeBackup(currentSave);
+    const fmt = ($('encFormat') && $('encFormat').value) || 'TTN1';
+    const code = await encodeBackup(currentSave, fmt);
     $('outCode').value = code;
     $('btnCopy').disabled = false;
     $('btnDownload').disabled = false;
-    showMsg('✓ Đã tạo mã mới.', 'ok');
+    showMsg('✓ Đã tạo mã ' + fmt + '.', 'ok');
     setTimeout(() => $('outCode').scrollIntoView({ behavior:'smooth', block:'center' }), 100);
   } catch (err) {
     showMsg('Lỗi: ' + err.message, 'warn');
