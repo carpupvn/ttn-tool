@@ -3,7 +3,6 @@ const $ = id => document.getElementById(id);
 let _licState = null;
 let _licTimer = null;
 
-/* Ripple effect cho button */
 document.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
@@ -20,65 +19,26 @@ document.addEventListener('click', e => {
 
 /* ============ NAME MAPPINGS ============ */
 const ITEM_NAMES = {
-  // Trà / sữa
-  tra:      'Trà sữa',
-  matcha:   'Matcha',
-  hong:     'Hồng trà',
-  luc:      'Lục trà',
-  olong:    'Trà Oolong',
-  thai:     'Trà Thái',
-
-  // Trà trái cây
-  f_vai:    'Trà vải',
-  f_dao:    'Trà đào',
-  f_dau:    'Trà dâu',
-  f_nho:    'Trà nho',
-  f_oi:     'Trà ổi',
-  f_xoai:   'Trà xoài',
-  f_mang:   'Trà mãng cầu',
-  f_tao:    'Trà táo',
-  f_chanh:  'Trà chanh',
-  f_me:     'Trà me',
-  f_dua:    'Trà dừa',
-  f_choco:  'Trà chocolate',
-
-  // Trân châu
-  tcden:    'Trân châu đen',
-  tcvang:   'Trân châu vàng',
-  tcsoi:    'Trân châu sợi',
-
-  // Topping
-  popping:  'Popping',
-  thach:    'Thạch',
-  cunang:   'Củ năng',
-  thachtc:  'Thạch trân châu',
-  suongsao: 'Sương sáo',
-  thachcf:  'Thạch cà phê',
-  cheese:   'Phô mai',
-  fmatcha:  'Foam matcha',
-  fsalt:    'Foam muối',
-  fube:     'Foam béo',
-  pmvien:   'Pudding viên',
-  pmtuoi:   'Pudding tươi',
-  thachpm:  'Thạch pudding',
-
-  // Khác
-  cup:      'Ly nhựa',
-
-  // Nhân viên
-  staff1:   'Nhân viên 1',
-  staff2:   'Nhân viên 2',
-  staff3:   'Nhân viên 3',
-  staff4:   'Nhân viên 4',
-
-  // Nâng cấp
-  upbulb:   'Đèn sáng',
-  upchair:  'Ghế ngồi',
-  upcups:   'Thêm ly',
-  upmega:   'Loa mega',
-  upsnow:   'Đá tuyết',
-  brandKit: 'Bộ nhận diện',
-  tablet:   'Tablet',
+  tra:'Trà sữa', matcha:'Matcha', hong:'Hồng trà', luc:'Lục trà',
+  olong:'Trà Oolong', thai:'Trà Thái',
+  f_vai:'Trà vải', f_dao:'Trà đào', f_dau:'Trà dâu', f_nho:'Trà nho',
+  f_oi:'Trà ổi', f_xoai:'Trà xoài', f_mang:'Trà mãng cầu', f_tao:'Trà táo',
+  f_chanh:'Trà chanh', f_me:'Trà me', f_dua:'Trà dừa', f_choco:'Trà chocolate',
+  tcden:'Trân châu đen', tcvang:'Trân châu vàng', tcsoi:'Trân châu sợi',
+  popping:'Popping', thach:'Thạch', cunang:'Củ năng', thachtc:'Thạch trân châu',
+  suongsao:'Sương sáo', thachcf:'Thạch cà phê', cheese:'Phô mai',
+  fmatcha:'Foam matcha', fsalt:'Foam muối', fube:'Foam béo',
+  pmvien:'Pudding viên', pmtuoi:'Pudding tươi', thachpm:'Thạch pudding',
+  cup:'Ly nhựa', ice:'Đá', sugar:'Đường',
+  sealer:'Máy dán nắp', fridge:'Tủ lạnh', mascot:'Mascot', sign:'Biển hiệu',
+  seats:'Bàn ghế', motorbike:'Xe máy', ads:'Quảng cáo', slot4:'Mở rộng quầy',
+  floor2:'Nâng tầng', ac:'Máy lạnh', brandKit:'Bộ nhận diện',
+  staff0:'Nhân viên 1', staff1:'Nhân viên 2', staff2:'Nhân viên 3',
+  staffBuyer:'Nhân viên đi chợ', staffMkt:'Nhân viên Marketing',
+  binhrot:'Bình rót trà', khaytop:'Khay topping', lyduongda:'Ly, đường, đá',
+  huong:'Level Hương', top:'Level Topping', equip:'Level Trang bị',
+  staff:'Level Nhân viên', onl:'Level Online',
+  default:'Mặc định',
 };
 
 const ITEM_GROUPS = [
@@ -86,23 +46,19 @@ const ITEM_GROUPS = [
   { title: 'Trà trái cây', keys: ['f_vai','f_dao','f_dau','f_nho','f_oi','f_xoai','f_mang','f_tao','f_chanh','f_me','f_dua','f_choco'] },
   { title: 'Trân châu',    keys: ['tcden','tcvang','tcsoi'] },
   { title: 'Topping',      keys: ['popping','thach','cunang','thachtc','suongsao','thachcf','cheese','fmatcha','fsalt','fube','pmvien','pmtuoi','thachpm'] },
-  { title: 'Khác',         keys: ['cup'] },
+  { title: 'Nguyên liệu',  keys: ['cup','ice','sugar'] },
+  { title: 'Nâng cấp',     keys: ['sealer','fridge','mascot','sign','seats','motorbike','ads','slot4','floor2','ac','brandKit'] },
+  { title: 'Nhân viên',    keys: ['staff0','staff1','staff2','staffBuyer','staffMkt'] },
 ];
 
-function getName(id) {
-  return ITEM_NAMES[id] || id;
-}
+function getName(id) { return ITEM_NAMES[id] || id; }
 
 /* ============ GATE ============ */
 function showGate(msg) {
   $('gate').classList.remove('hidden');
   $('app').classList.add('hidden');
-  if (msg) {
-    $('gateMsg').className = 'warn';
-    $('gateMsg').textContent = msg;
-  } else {
-    $('gateMsg').textContent = '';
-  }
+  if (msg) { $('gateMsg').className = 'warn'; $('gateMsg').textContent = msg; }
+  else $('gateMsg').textContent = '';
   setTimeout(() => $('gateInput').focus(), 200);
 }
 function showApp(state) {
@@ -113,11 +69,8 @@ function showApp(state) {
   if (_licTimer) clearInterval(_licTimer);
   _licTimer = setInterval(() => {
     const remain = state.exp - Date.now();
-    if (remain <= 0) {
-      License.clearLicense();
-      _licState = null;
-      showGate('Mã đã hết hạn. Nhập mã mới để tiếp tục.');
-    } else renderBanner();
+    if (remain <= 0) { License.clearLicense(); _licState = null; showGate('Mã đã hết hạn. Nhập mã mới để tiếp tục.'); }
+    else renderBanner();
   }, 60000);
 }
 function renderBanner() {
@@ -229,8 +182,8 @@ const SCALAR_FIELDS = [
   { key:'totalRev', label:'Tổng doanh thu' }, { key:'totalProfit', label:'Tổng lợi nhuận' },
   { key:'yearRev', label:'Doanh thu năm' }, { key:'taxYear', label:'Thuế năm' },
   { key:'served', label:'Đã phục vụ' }, { key:'best', label:'Kỷ lục' },
-  { key:'revTotal', label:'Số review' }, { key:'seenLv', label:'seenLv' },
-  { key:'bungN', label:'bungN' },
+  { key:'revTotal', label:'Số review' }, { key:'star5Count', label:'Số lần 5 sao' },
+  { key:'seenLv', label:'seenLv' }, { key:'tablets', label:'Số tablet' },
 ];
 function fmt(n) { return isFinite(n) ? Number(n).toLocaleString('vi-VN') : '—'; }
 function showMsg(t, c='warn') { const e = $('msg'); e.className = c; e.textContent = t; e.classList.remove('hidden'); }
@@ -257,6 +210,7 @@ function loadSave(save) {
   renderUnlockChips(save.unlocked || {});
   renderUpgChips(save.upg || {});
   renderStock(save.stock || {});
+  renderReviews(save.reviews || []);
 
   $('rawJson').value = JSON.stringify(save, null, 2);
   renderAudit();
@@ -275,21 +229,16 @@ function renderUnlockChips(unlocked) {
   const uc = $('unlockChips');
   uc.innerHTML = '';
   uc.classList.add('grouped');
-
   const rendered = new Set();
-
   ITEM_GROUPS.forEach(grp => {
     const validKeys = grp.keys.filter(k => k in unlocked);
     if (!validKeys.length) return;
-
     const groupEl = document.createElement('div');
     groupEl.className = 'chip-group';
-
     const titleEl = document.createElement('div');
     titleEl.className = 'chip-group-title';
     titleEl.textContent = grp.title;
     groupEl.appendChild(titleEl);
-
     const listEl = document.createElement('div');
     listEl.className = 'chips';
     validKeys.forEach(k => {
@@ -304,8 +253,6 @@ function renderUnlockChips(unlocked) {
     groupEl.appendChild(listEl);
     uc.appendChild(groupEl);
   });
-
-  // Các key còn lại
   const others = Object.keys(unlocked).filter(k => !rendered.has(k));
   if (others.length) {
     const groupEl = document.createElement('div');
@@ -347,29 +294,20 @@ function renderUpgChips(upg) {
 function renderStock(stock) {
   const sl = $('stockList');
   sl.innerHTML = '';
-
   const rendered = new Set();
-
   ITEM_GROUPS.forEach(grp => {
     const validKeys = grp.keys.filter(k => k in stock);
     if (!validKeys.length) return;
     validKeys.forEach(k => rendered.add(k));
-
     const sec = document.createElement('div');
     sec.className = 'stock-section';
-
     const title = document.createElement('div');
     title.className = 'stock-title';
     title.textContent = grp.title;
     sec.appendChild(title);
-
-    validKeys.forEach(k => {
-      sec.appendChild(makeStockRow(k, stock[k]));
-    });
+    validKeys.forEach(k => sec.appendChild(makeStockRow(k, stock[k])));
     sl.appendChild(sec);
   });
-
-  // Các key còn lại
   const others = Object.keys(stock).filter(k => !rendered.has(k));
   if (others.length) {
     const sec = document.createElement('div');
@@ -378,9 +316,7 @@ function renderStock(stock) {
     title.className = 'stock-title';
     title.textContent = 'Khác';
     sec.appendChild(title);
-    others.forEach(k => {
-      sec.appendChild(makeStockRow(k, stock[k]));
-    });
+    others.forEach(k => sec.appendChild(makeStockRow(k, stock[k])));
     sl.appendChild(sec);
   }
 }
@@ -394,6 +330,32 @@ function makeStockRow(k, arr) {
     + '<input type="text" data-stock-q="' + k + '" value="' + q + '" placeholder="SL">'
     + '<input type="text" data-stock-exp="' + k + '" value="' + exp + '" placeholder="HSD">';
   return row;
+}
+
+/* ============ RENDER REVIEWS ============ */
+function renderReviews(reviews) {
+  const box = $('revStats');
+  if (!box) return;
+  const real = reviews.filter(r => !r.isMilestoneReset);
+  const n5 = real.filter(r => r.s === 5).length;
+  const n4 = real.filter(r => r.s === 4).length;
+  const n3 = real.filter(r => r.s === 3).length;
+  const n2 = real.filter(r => r.s === 2).length;
+  const n1 = real.filter(r => r.s === 1).length;
+  const n0 = real.filter(r => r.s === 0).length;
+  const avg = real.length ? (real.reduce((a, r) => a + (r.s || 0), 0) / real.length) : 0;
+
+  box.innerHTML =
+    '<div class="kpi">'
+    + '<div>Tổng<b>' + real.length + '</b></div>'
+    + '<div>Trung bình<b>' + avg.toFixed(2) + '★</b></div>'
+    + '<div>5★<b>' + n5 + '</b></div>'
+    + '<div>4★<b>' + n4 + '</b></div>'
+    + '<div>3★<b>' + n3 + '</b></div>'
+    + '<div>2★<b>' + n2 + '</b></div>'
+    + '<div>1★<b>' + n1 + '</b></div>'
+    + '<div>0★<b>' + n0 + '</b></div>'
+    + '</div>';
 }
 
 /* ============ RENDER AUDIT ============ */
@@ -512,29 +474,80 @@ $('btnUnlockAll').onclick = () => {
   Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = true);
   document.querySelectorAll('[data-unlock]').forEach(c => c.classList.add('on'));
 };
-
 $('btnUnlockNone').onclick = () => {
   if (!currentSave) return;
   Object.keys(currentSave.unlocked).forEach(k => currentSave.unlocked[k] = false);
   document.querySelectorAll('[data-unlock]').forEach(c => c.classList.remove('on'));
 };
-
 $('btnUpgAll').onclick = () => {
   if (!currentSave) return;
   Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = true);
   document.querySelectorAll('[data-upg]').forEach(c => c.classList.add('on'));
 };
-
 $('btnUpgNone').onclick = () => {
   if (!currentSave) return;
   Object.keys(currentSave.upg).forEach(k => currentSave.upg[k] = false);
   document.querySelectorAll('[data-upg]').forEach(c => c.classList.remove('on'));
 };
-
 $('btnStockMax').onclick = () => {
   if (!currentSave) return;
   Object.keys(currentSave.stock).forEach(k => currentSave.stock[k] = [{ q: 999, exp: 9999 }]);
   renderStock(currentSave.stock);
+};
+
+/* ===== REVIEWS ===== */
+$('btnRev5').onclick = () => {
+  if (!currentSave || !Array.isArray(currentSave.reviews)) return;
+  if (!confirm('Đổi toàn bộ đánh giá (trừ review mốc hệ thống) thành 5 sao?')) return;
+  let n = 0;
+  currentSave.reviews.forEach(r => {
+    if (r.isMilestoneReset) return;   // giữ nguyên review mốc
+    if (typeof r.s === 'number') {
+      // Nếu có mktStarUp (marketing đã nâng sao), reset về origS = 5 để khỏi xung đột
+      if (r.mktStarUp && typeof r.origS === 'number') {
+        r.origS = 5;
+        delete r.mktStarUp;
+        delete r.mktCustHappy;
+        delete r.mktCheckedStar;
+      }
+      r.s = 5;
+      n++;
+    }
+  });
+  // Cập nhật lại star5Count ở top-level (đếm số review 5 sao của real khách)
+  const real5 = currentSave.reviews.filter(r => !r.isMilestoneReset && r.s === 5).length;
+  if ('star5Count' in currentSave) currentSave.star5Count = Math.max(currentSave.star5Count || 0, real5);
+  renderReviews(currentSave.reviews);
+  $('rawJson').value = JSON.stringify(currentSave, null, 2);
+  showMsg('✓ Đã đổi ' + n + ' đánh giá thành 5 sao. Nhớ bấm "Mã hoá" để xuất.', 'ok');
+};
+
+$('btnRevMax').onclick = () => {
+  if (!currentSave || !Array.isArray(currentSave.reviews)) return;
+  if (!confirm('Sửa TẤT CẢ review (kể cả review mốc) thành 5 sao?')) return;
+  let n = 0;
+  currentSave.reviews.forEach(r => {
+    if (typeof r.s === 'number') {
+      if (r.mktStarUp && typeof r.origS === 'number') {
+        r.origS = 5;
+        delete r.mktStarUp;
+        delete r.mktCustHappy;
+        delete r.mktCheckedStar;
+      }
+      r.s = 5;
+      n++;
+    }
+  });
+  const real5 = currentSave.reviews.filter(r => r.s === 5).length;
+  if ('star5Count' in currentSave) currentSave.star5Count = Math.max(currentSave.star5Count || 0, real5);
+  renderReviews(currentSave.reviews);
+  $('rawJson').value = JSON.stringify(currentSave, null, 2);
+  showMsg('✓ Đã đổi ' + n + ' review thành 5 sao (kể cả mốc).', 'ok');
+};
+
+$('btnRevRefresh').onclick = () => {
+  if (!currentSave) return;
+  renderReviews(currentSave.reviews || []);
 };
 
 $('btnApplyRaw').onclick = () => {
@@ -543,7 +556,6 @@ $('btnApplyRaw').onclick = () => {
     showMsg('✓ Đã áp dụng.', 'ok');
   } catch (err) { showMsg('JSON lỗi: ' + err.message, 'warn'); }
 };
-
 $('btnRefreshRaw').onclick = () => {
   if (currentSave) $('rawJson').value = JSON.stringify(currentSave, null, 2);
 };

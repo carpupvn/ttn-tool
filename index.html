@@ -14,7 +14,6 @@
   <span>Admin</span>
 </a>
 
-<!-- Floating decorations -->
 <div class="deco" aria-hidden="true">
   <span class="deco-item d1">🧋</span>
   <span class="deco-item d2">🍃</span>
@@ -25,7 +24,6 @@
 
 <div class="wrap">
 
-  <!-- ===== GATE ===== -->
   <div id="gate" class="gate hidden">
     <div class="panel gate-panel">
       <div class="gate-icon">🔒</div>
@@ -42,7 +40,6 @@
     </div>
   </div>
 
-  <!-- ===== APP ===== -->
   <div id="app" class="hidden">
     <div id="licBanner" class="banner ok"></div>
 
@@ -102,6 +99,19 @@
           <button class="ghost" id="btnUnlockNone">Khoá tất cả</button>
         </div>
         <div class="chips" id="unlockChips"></div>
+
+        <h3>Đánh giá (reviews)</h3>
+        <div id="revStats"></div>
+        <div class="row">
+          <button class="ghost" id="btnRev5">⭐ Set tất cả 5 sao</button>
+          <button class="ghost" id="btnRevMax">💥 Set tất cả (kể cả mốc) 5 sao</button>
+          <button class="ghost" id="btnRevRefresh">🔄 Refresh thống kê</button>
+        </div>
+        <div class="tip">
+          Nút thường: đổi hết review khách thành 5 sao, giữ nguyên review mốc hệ thống.<br>
+          Nút 💥: đổi cả review mốc (thường là review reset 0 sao khi cán mốc 5★) — dùng khi muốn mọi thứ đều 5★.
+        </div>
+
         <h3>Nâng cấp / nhân viên</h3>
         <div class="row">
           <button class="ghost" id="btnUpgAll">Bật tất cả</button>
